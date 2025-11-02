@@ -4,7 +4,55 @@
 using namespace std;
 
 class Engine {
+    private:
+        double Start_Engine_Consumption;
+        double Ride_Consumption;
+        bool Engine_on_off;
 
+    public:
+        //Konstruktor
+        Engine(double C_Start_Engine_Consumption, double C_Ride_Consumption, bool C_Engine_on_off)
+            : Start_Engine_Consumption(C_Start_Engine_Consumption), Ride_Consumption(C_Ride_Consumption), Engine_on_off(C_Engine_on_off) {}
+
+        //Konstruktor domyslny
+        Engine() { Start_Engine_Consumption = 0.1; Ride_Consumption = 0.02; Engine_on_off = false; }
+
+        //Getter
+        double get_Start_Consumption() const {
+            return this->Start_Engine_Consumption;
+        }
+        double get_Ride_Consumption() const {
+            return this->Ride_Consumption;
+        }
+        bool get_Engine_on_off() const {
+            return this->Engine_on_off;
+        }
+
+        //Setter
+        void set_Start_Consumption(double S_Start_Consumption) {
+            Start_Engine_Consumption = S_Start_Consumption;
+        }
+        void set_Ride_Consumption(double S_Ride_Consumption) {
+            Ride_Consumption = S_Ride_Consumption;
+        }
+        void set_Engine_on_off(bool S_Engine_on_off) {
+            Engine_on_off = S_Engine_on_off;
+        }
+
+        //Metody
+        void Start_Engine () {  //Chwilowo void - pozniej prawdopodobnie zmienie na bool
+            //Start silnika wykorzystuje paliwo z baku            
+            if (Consume_Fuel(Start_Engine_Consumption)) {
+                set_Engine_on_off(true);
+                cout<<"Silnik zostal uruchomiony"<<endl;
+            }
+            else cout<<"Nie udalo sie uruchomic silnika. Byc moze brakuje paliwa"<<endl;
+        }
+        bool Ride () {
+            //Jazda wykorzystuje paliwo
+            if (Engine_on_off == true && Consume_Fuel(Ride_Consumption) ) return true; //Najpierw sprawdzamy czy silnik jest uruchomiony, jezeli tak to sprawdzamy drugi warunek logiczny
+            else return false;
+        }
 };
 
 class FuelTank {
