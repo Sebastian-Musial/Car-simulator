@@ -126,8 +126,21 @@ class Transmission {
 }
 
 class Dashboard {
+    private:
 
-}
+    public:
+        //Metody
+        void Car_Information() {
+            cout<<"<--------Informacje o aucie-------->"<<endl;
+            //Silnik
+            if(get_Engige_On_Off) cout<<"Silnik jest uruchomiony"<<endl;
+            else cout<<"Silnik jest wylaczony"<<endl;
+            //Paliwo
+            cout<<"W baku jest: "<<get_FuelTank_Level()<<"L paliwa"<<endl;
+            //Predkosc
+            /*Brakuje metody w Car*/
+        }
+};
 
 class Car {
     private:
