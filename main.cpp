@@ -8,7 +8,35 @@ class Engine {
 };
 
 class FuelTank {
+    private:
+        double FuelTank_Level;
 
+    public:
+        //Konstruktor
+        FuelTank(double C_FuelTank_Level) 
+            : FuelTank_Level (C_FuelTank_Level) {}
+
+        //Konstruktor domyslny
+        FuelTank() { FuelTank_Level = 5.0; }
+        
+        //Getter
+        double get_FuelTank_Level() const {
+            return this->FuelTank_Level;
+        }
+
+        //Setter
+        void set_FuelTank_Level(double S_FuelTank_Level) {
+            FuelTank_Level =S_FuelTank_Level;
+        }
+
+        //Metody
+        bool Consume_Fuel(double Amount) {
+            if (this->FuelTank_Level >= Amount) {
+                this->FuelTank_Level -= Amount;
+                return true;
+            } 
+            else return false;
+        }
 };
 
 class Brake {
