@@ -3,58 +3,6 @@
 
 using namespace std;
 
-class Engine {
-    private:
-        double Start_Engine_Consumption;
-        double Ride_Consumption;
-        bool Engine_on_off;
-
-    public:
-        //Konstruktor
-        Engine(double C_Start_Engine_Consumption, double C_Ride_Consumption, bool C_Engine_on_off)
-            : Start_Engine_Consumption(C_Start_Engine_Consumption), Ride_Consumption(C_Ride_Consumption), Engine_on_off(C_Engine_on_off) {}
-
-        //Konstruktor domyslny
-        Engine() { Start_Engine_Consumption = 0.1; Ride_Consumption = 0.02; Engine_on_off = false; }
-
-        //Getter
-        double get_Start_Consumption() const {
-            return this->Start_Engine_Consumption;
-        }
-        double get_Ride_Consumption() const {
-            return this->Ride_Consumption;
-        }
-        bool get_Engine_on_off() const {
-            return this->Engine_on_off;
-        }
-
-        //Setter
-        void set_Start_Consumption(double S_Start_Consumption) {
-            Start_Engine_Consumption = S_Start_Consumption;
-        }
-        void set_Ride_Consumption(double S_Ride_Consumption) {
-            Ride_Consumption = S_Ride_Consumption;
-        }
-        void set_Engine_on_off(bool S_Engine_on_off) {
-            Engine_on_off = S_Engine_on_off;
-        }
-
-        //Metody
-        void Start_Engine () {  //Chwilowo void - pozniej prawdopodobnie zmienie na bool
-            //Start silnika wykorzystuje paliwo z baku            
-            if (Consume_Fuel(Start_Engine_Consumption)) {
-                set_Engine_on_off(true);
-                cout<<"Silnik zostal uruchomiony"<<endl;
-            }
-            else cout<<"Nie udalo sie uruchomic silnika. Byc moze brakuje paliwa"<<endl;
-        }
-        bool Ride () {
-            //Jazda wykorzystuje paliwo
-            if (Engine_on_off == true && Consume_Fuel(Ride_Consumption) ) return true; //Najpierw sprawdzamy czy silnik jest uruchomiony, jezeli tak to sprawdzamy drugi warunek logiczny
-            else return false;
-        }
-};
-
 class FuelTank {
     private:
         double FuelTank_Level;
@@ -123,20 +71,77 @@ class Brake {
 
 class Transmission {
 
-}
+};
+
+class Engine {
+    private:
+        FuelTank& FuelTank_Ref;
+        double Start_Engine_Consumption;
+        double Ride_Consumption;
+        bool Engine_on_off;
+
+
+    public:
+        //Konstruktor
+        Engine( FuelTank& C_FuelTank_Ref, double C_Start_Engine_Consumption = 0.2, double C_Ride_Consumption = 0.1, bool C_Engine_on_off = false)
+            : FuelTank_Ref(C_FuelTank_Ref), Start_Engine_Consumption(C_Start_Engine_Consumption), Ride_Consumption(C_Ride_Consumption), Engine_on_off(C_Engine_on_off) {}
+
+        //Getter
+        double get_Start_Consumption() const {
+            return this->Start_Engine_Consumption;
+        }
+        double get_Ride_Consumption() const {
+            return this->Ride_Consumption;
+        }
+        bool get_Engine_on_off() const {
+            return this->Engine_on_off;
+        }
+
+        //Setter
+        void set_Start_Consumption(double S_Start_Consumption) {
+            Start_Engine_Consumption = S_Start_Consumption;
+        }
+        void set_Ride_Consumption(double S_Ride_Consumption) {
+            Ride_Consumption = S_Ride_Consumption;
+        }
+        void set_Engine_on_off(bool S_Engine_on_off) {
+            Engine_on_off = S_Engine_on_off;
+        }
+
+        //Metody
+        void Start_Engine () {  //Chwilowo void - pozniej prawdopodobnie zmienie na bool
+            //Start silnika wykorzystuje paliwo z baku            
+            if (FuelTank_Ref.Consume_Fuel(Start_Engine_Consumption)) {
+                set_Engine_on_off(true);
+                cout<<"Silnik zostal uruchomiony"<<endl;
+            }
+            else cout<<"Nie udalo sie uruchomic silnika. Byc moze brakuje paliwa"<<endl;
+        }
+        bool Ride () {
+            //Jazda wykorzystuje paliwo
+            if (Engine_on_off == true && FuelTank_Ref.Consume_Fuel(Ride_Consumption) ) return true; //Najpierw sprawdzamy czy silnik jest uruchomiony, jezeli tak to sprawdzamy drugi warunek logiczny
+            else return false;
+        }
+};
 
 class Dashboard {
     private:
+        FuelTank& FuelTank_Ref;
+        Engine& Engine_Ref;
 
     public:
+        //Konstruktor
+        Dashboard(FuelTank& C_FuelTank_Ref, Engine& C_Engine_Ref)
+            : FuelTank_Ref(C_FuelTank_Ref), Engine_Ref(C_Engine_Ref) {}
+
         //Metody
         void Car_Information() {
             cout<<"<--------Informacje o aucie-------->"<<endl;
             //Silnik
-            if(get_Engige_On_Off) cout<<"Silnik jest uruchomiony"<<endl;
+            if(Engine_Ref.get_Engine_on_off()) cout<<"Silnik jest uruchomiony"<<endl;
             else cout<<"Silnik jest wylaczony"<<endl;
             //Paliwo
-            cout<<"W baku jest: "<<get_FuelTank_Level()<<"L paliwa"<<endl;
+            cout<<"W baku jest: "<<FuelTank_Ref.get_FuelTank_Level()<<"L paliwa"<<endl;
             //Predkosc
             /*Brakuje metody w Car*/
         }
@@ -144,24 +149,24 @@ class Dashboard {
 
 class Car {
     private:
-        Engine Car_Engine;
         FuelTank Car_FuelTank;
         Brake Car_Brake;
+        Engine Car_Engine;
         //Transmission Car_Transmission;
         Dashboard Car_Dashboard;
 
     public:
-        //Konstruktor 
-        Car(Engine C_Car_Engine, FuelTank C_Car_FuelTank, Brake C_Car_Brake, /*Transmission Car_Transmission*/, Dashboard C_Car_Dashboard) 
-            : Car_Engine (C_Car_Engine), Car_FuelTank (C_Car_FuelTank), Car_Brake (C_Car_Brake), /*Car_Transmission (Car_Transmission)*/, Car_Dashboard (C_Car_Dashboard) {}
-
+        /*//Konstruktor 
+        Car(FuelTank& C_Car_FuelTank, Brake& C_Car_Brake, Engine& C_Car_Engine, Transmission Car_Transmission, Dashboard& C_Car_Dashboard) 
+            :  Car_FuelTank (C_Car_FuelTank), Car_Brake (C_Car_Brake), Car_Engine (C_Car_Engine, C_Car_FuelTank), Car_Transmission (Car_Transmission), Car_Dashboard (C_Car_Dashboard, C_Car_FuelTank, C_Car_Engine) {}
+        */
         //Konstruktor domyslny
         Car() 
-            : Car_Engine (), 
-              Car_FuelTank (), 
+            : Car_FuelTank (), 
               Car_Brake (), 
-              /*Car_Transmission ()*/, 
-              Car_Dashboard () {}
+              Car_Engine (Car_FuelTank), 
+              /*Car_Transmission (),*/ 
+              Car_Dashboard (Car_FuelTank, Car_Engine) {}
 
         //Gettery
         Engine get_Engine() const {
@@ -181,21 +186,15 @@ class Car {
         }
 
         //Settery
-        void set_Engine(Engine S_Engine) {
-            Car_Engine = S_Engine;
-        }
         void set_FuelTank(FuelTank S_FuelTank) {
             Car_FuelTank = S_FuelTank;
         }       
-        void set_Brake(Break S_Brake) {
+        void set_Brake(Brake S_Brake) {
             Car_Brake = S_Brake;
         }        
         /*void set_Transmission(Transmission S_Transmission) {
             Car_Transmission = S_Transmission;
         }*/        
-        void set_Dashborad(Dashboard S_Dashboard) {
-            Car_Dashboard = S_Dashboard;
-        }
 };
 
 const int MAX_SPEED_KMH = 200;
