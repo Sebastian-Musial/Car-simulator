@@ -88,7 +88,37 @@ class FuelTank {
 };
 
 class Brake {
+    private:
+        int Brake_Power;
 
+    public:
+        //Konstruktor
+        Brake(int C_Brake_Power)
+            : Brake_Power(C_Brake_Power) {}
+
+        //Konstruktor domyslny
+        Brake() { Brake_Power = 30; }
+
+        //Getter
+        int get_Brake_Power() const {
+            return this->Brake_Power;
+        }
+
+        //Setter
+        void set_Brake_Power(int S_Brake_Power) {
+            Brake_Power = S_Brake_Power;
+        }
+
+        //Metody
+        /*Potrzebna metoda hamowania ale brakuje nam predkosci do ktorej metoda moze sie odniesc*/
+        /*
+        void Stop(int Speed) {
+            while (Speed !=0)
+            {
+                Speed -= Brake_Power; //Uproszczona wersja - brak walidacji co sie stanie jak brake power bedzie wieksze od speed = wartosc ujemna
+            }
+        }
+        */
 };
 
 class Transmission {
