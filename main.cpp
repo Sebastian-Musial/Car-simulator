@@ -185,11 +185,11 @@ class Car {
         }
 };
 
-const MAX_SPEED_KMH;
+const int MAX_SPEED_KMH = 200;
 
-const MASS_KG;
+const int MASS_KG = 3000;
 
-const DT;
+const double DT = 0.02; //Jest to liczba przykladowa i wymaga testowania
 
 //pętla update(dt) 
 
