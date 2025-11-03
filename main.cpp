@@ -253,6 +253,28 @@ class Car {
 const double DT = 0.02; //Jest to liczba przykladowa i wymaga testowania
 //pętla update(dt) 
 
+//Instrukcje preprocesora dla kompilacji dla windowsa oraz nie windowsa np. linux
+#ifdef _WIN32   //Windows
+    #include <windows.h>    //Biblioteka windows API - potrzebna do skorzystania z GetAsyncKeyState
+    //Stan bitu 15 sprawdza czy klawisz jest teraz wcisniety - sprawdza czy klawisz jest trzymany. Dla samego wcisnięcia sprawdzany jest bit 0 - (0x0001)
+    bool Key_Throttle() { return (GetAsyncKeyState(VK_UP)    & 0x8000) != 0; }  //Test czy klawisz sztalki w gore jest wcisniety dla throttle
+    bool Key_Brake()    { return (GetAsyncKeyState(VK_SPACE) & 0x8000) != 0; }  //Test czy klawisz spacji jest wcisniety dla brake
+    bool Key_Quit()     { return (GetAsyncKeyState('Q')      & 0x8000) != 0; }  //Test czy klawisz Q jest wcisniety dla Quit
+    //Proces dzialania
+    /*
+    Funkcja: SHORT GetAsyncKeyState(int vKey);
+        Pozwala na zwracanie wartosci bitowych stanu danego klawisza i sprawdzenie go z bitami odpowiadającymi za wcisniecie klawisza
+        A dokladnie
+        Funkcja GetAsyncKeyState(int vKey) zwraca wartość 16-bitową,
+        w której poszczególne bity informują o stanie klawisza —
+        pozwala sprawdzić, czy dany klawisz jest aktualnie wciśnięty (bit 15)
+        lub czy został naciśnięty od ostatniego wywołania (bit 0).
+    */
+#else   //Tutaj powinna byc instrukcja dla linux
+
+#endif
+
+
 int main ()
 {
 
