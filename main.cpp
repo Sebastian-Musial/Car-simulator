@@ -1,6 +1,9 @@
 #include <iostream>
 #include <string>
 #include <algorithm> //Wymagane dla std::clamp(value, min, max); + std::max(Value_A, Value_B);
+#include <chrono>   //Biblioteka do obsługi czasu  potrzebne dla pomiaru czasu i jednostek czasu 
+#include <thread>   //Biblioteka do obslugi wielowatkowosci i zarzadzania czasem w aplikacji - zarządza wątkami np. w sleep_for aby uspic petle
+#include <cstdio>   //Biblioteka dla wypisywania danych np, printf
 
 using namespace std;
 
@@ -277,5 +280,33 @@ const double DT = 0.02; //Jest to liczba przykladowa i wymaga testowania
 
 int main ()
 {
+    cout<<"UP = throttle, SPACE = brake, Q = quit"<<endl;
 
+    Car Audi;
+    auto T0 = chrono::high_resolution_clock::now();
+
+    while (true) {
+        if (Key_Quit()) break;
+
+        bool Thr = Key_Throttle();
+        bool Brk = Key_Brake();
+
+        auto T1 = chrono::high_resolution_clock::now();
+        double DT = chrono::duration<double>(T1 - T0).count();
+        if (DT > 0.05) DT = 0.05; 
+        T0 = T1;
+
+        Audi.Speed_Update(DT, Thr, Brk);
+
+        printf("\rspeed=%6.2f km/h   throttle=%.2f   brake=%.2f   fuel=%.2f L   engine=%s   ",
+                    Audi.get_CarSpeed(), Audi.get_CatThrottle(), Audi.get_CarBrake(),
+                    Audi.get_Car_FuelTank().get_FuelTank_Level(),
+                    Audi.get_Engine().get_Engine_on_off() ? "ON" : "OFF");
+        fflush(stdout);
+
+        this_thread::sleep_for(chrono::milliseconds(16));
+    }
+
+    std::puts("\nBye!");
+    return 0;
 }
