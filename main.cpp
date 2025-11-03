@@ -1,6 +1,6 @@
 #include <iostream>
 #include <string>
-#include <algorithm> //Wymagane dla std::clamp(value, min, max);
+#include <algorithm> //Wymagane dla std::clamp(value, min, max); + std::max(Value_A, Value_B);
 
 using namespace std;
 
@@ -164,6 +164,7 @@ class Car {
         double CarSpeed = 0.0;
         double CarThrottle = 0.0;
         double CarBrake = 0.0;  //Zapisanie zmiennych double CarNazwa z powodu problemu nazw double Brake i class Brake 
+        double Slew = 3; //O ile jednostek na sekundę moze zostac dokonana zmiana wartosci. W tym przypadku 3 jednostki na sekunde
         
         //Ogranicznik szybkosci zmian wartosci
         static double Rate_Limiter(double Current_Value, double Target_Value, double Max_Value_For_Rate, double DT) { //DT - Krok czasu, Max_Value_For_Tate = maksymalna wartosc/predkosc na sekunde/klatke
@@ -237,9 +238,16 @@ class Car {
         }*/   
        
         //Metody
-        void Acceleration()
+        void Speed_Update (double DT, bool Click_Throttle, bool Click_Brake) {
+            CarThrottle = Rate_Limiter(CarThrottle, Click_Throttle ? 1.0:0.0, Slew ,DT);
+            CarBrake == Rate_Limiter(CarBrake, Click_Brake ? 1.0:0.0, Slew ,DT);
 
-        void Braking()
+            //Mechanika przyspieszenia:  Przyspieszenie = Throttle - Brake
+            double Acceleration = 0.0;
+            Acceleration += CarThrottle * MAX_Aceleration;  //Dodajemy moc gazu do przyspieszenia
+            Acceleration -= CarBrake * MAX_Brake;   //Odejmuje moc hamulca do przyspieszenia
+            CarSpeed = max(0.0, CarSpeed + (Acceleration * DT));    //Funkcja wybierajaca wieksza wartosc. Zabezpieczenie przed ujemna predkoscia
+        }
 };
 
 const double DT = 0.02; //Jest to liczba przykladowa i wymaga testowania
