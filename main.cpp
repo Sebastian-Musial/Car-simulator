@@ -283,7 +283,6 @@ int main ()
     cout<<"UP = throttle, SPACE = brake, Q = quit"<<endl;
 
     Car Audi;
-    auto T0 = chrono::high_resolution_clock::now();
 
     while (true) {
         if (Key_Quit()) break;
@@ -291,22 +290,38 @@ int main ()
         bool Thr = Key_Throttle();
         bool Brk = Key_Brake();
 
-        auto T1 = chrono::high_resolution_clock::now();
-        double DT = chrono::duration<double>(T1 - T0).count();
-        if (DT > 0.05) DT = 0.05; 
-        T0 = T1;
-
         Audi.Speed_Update(DT, Thr, Brk);
 
+        //Wypisanie tekstu z informacjami w czasie rzeczywistym
         printf("\rspeed=%6.2f km/h   throttle=%.2f   brake=%.2f   fuel=%.2f L   engine=%s   ",
                     Audi.get_CarSpeed(), Audi.get_CatThrottle(), Audi.get_CarBrake(),
                     Audi.get_Car_FuelTank().get_FuelTank_Level(),
                     Audi.get_Engine().get_Engine_on_off() ? "ON" : "OFF");
         fflush(stdout);
+        //Dzialanie
+        /*
+        printf jest buforem danych ktory wypisuje caly czas ta sama linie tekstu
+        Znak (\r) powoduje cofanie sie kursora na poczatek tej samej liunii
+        Skorzystanie z tych 2 opcji pozwala nadpisywac tekst i symulowac aktualizacje danych
+
+        fflush(stdout) wymusza oproznienie bufora i pokazanie aktualnej zawartosci z printf natychmiast
+        to znaczy nowo przygotowany tekst
+
+        W srodku mamy zawartosc tekstowa z formatowaniem tekstu oraz gettery klasy Car
+        w celu przekazania informacji o aktualnym statusie auta
+        */
 
         this_thread::sleep_for(chrono::milliseconds(16));
-    }
+        //Dzialanie
+        /*
+        this_thread - funcja obslugujaca aktualny watek programu
+        sleep_for - usypia/zatrzymuje dzialanie biezace watku na okreslony czat, w tym przypadku 16 millisekund
+        chrono::milliseconds(16) - chrono obsluguje czas w programie a zapis miliseconds(16) okresla obiekt czasu - 16 milisekund
 
-    std::puts("\nBye!");
+        calosc dzialania powoduje zatrzymanie watku programu - dzialania programu na 16 milisekund
+        czyli petla ma przerwy co 16 ms
+        uzyte jest to w celu bardziej rzeczywistej symulacji dzialnia programu - w przyblizeniu 60 razy na sekunde czyli 60 FPS  
+        */
+    }
     return 0;
 }

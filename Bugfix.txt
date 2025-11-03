@@ -1,3 +1,8 @@
+Bugfix 2
+-Poprawki w Rate limiter 
+-Literówki 
+-Przeniesienie biblioteki <windows.h> na początek
+
 Bugfix 1
 -Literówki
 -Kolejność klas
