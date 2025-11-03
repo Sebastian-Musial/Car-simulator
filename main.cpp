@@ -4,6 +4,7 @@
 #include <chrono>   //Biblioteka do obsługi czasu  potrzebne dla pomiaru czasu i jednostek czasu 
 #include <thread>   //Biblioteka do obslugi wielowatkowosci i zarzadzania czasem w aplikacji - zarządza wątkami np. w sleep_for aby uspic petle
 #include <cstdio>   //Biblioteka dla wypisywania danych np, printf
+#include <windows.h>    //Biblioteka windows API - potrzebna do skorzystania z GetAsyncKeyState
 
 using namespace std;
 
@@ -173,9 +174,9 @@ class Car {
         static double Rate_Limiter(double Current_Value, double Target_Value, double Max_Value_For_Rate, double DT) { //DT - Krok czasu, Max_Value_For_Tate = maksymalna wartosc/predkosc na sekunde/klatke
             double Target = Target_Value - Current_Value; //Ile brakuje do celu - do wartosci max dla np. throttle - Przedział od 0.0 do 1.0
             double MAX_One_DT = Max_Value_For_Rate * DT; //Maksymalny krok jaki może być wykonany na 1 krok czasu   
-            if (Target > MAX_One_DT) Current_Value += Max_Value_For_Rate;   //Gdy wartosc do celu jest wieksza od max wartosci na klatke np. do max predkosci brakuje 4 km/h, max przyspieszenie na klatke 3km/h 
-            else if (Target < MAX_One_DT) Current_Value -= Max_Value_For_Rate;  //Gdy wartosc do celu jest mniejsza od max wartosci na klatke np. do max predkosci brakuje 2 km/h, max przyszpieczenie na klatke 3km/h
-            else Target = Target_Value;
+            if (Target > MAX_One_DT) Current_Value += MAX_One_DT;   //Gdy wartosc do celu jest wieksza od max wartosci na klatke np. do max predkosci brakuje 4 km/h, max przyspieszenie na klatke 3km/h 
+            else if (Target < -MAX_One_DT) Current_Value -= MAX_One_DT;  //Gdy wartosc do celu jest mniejsza od max wartosci na klatke np. do max predkosci brakuje 2 km/h, max przyszpieczenie na klatke 3km/h
+            else Current_Value = Target_Value;
             return clamp(Current_Value, 0.0, 1.0);  //Przycina wartosci do przedzialu [0.0, 1.0] 
 
             //Dzialanie clamp ponizej
@@ -243,7 +244,7 @@ class Car {
         //Metody
         void Speed_Update (double DT, bool Click_Throttle, bool Click_Brake) {
             CarThrottle = Rate_Limiter(CarThrottle, Click_Throttle ? 1.0:0.0, Slew ,DT);
-            CarBrake == Rate_Limiter(CarBrake, Click_Brake ? 1.0:0.0, Slew ,DT);
+            CarBrake = Rate_Limiter(CarBrake, Click_Brake ? 1.0:0.0, Slew ,DT);
 
             //Mechanika przyspieszenia:  Przyspieszenie = Throttle - Brake
             double Acceleration = 0.0;
@@ -258,7 +259,6 @@ const double DT = 0.02; //Jest to liczba przykladowa i wymaga testowania
 
 //Instrukcje preprocesora dla kompilacji dla windowsa oraz nie windowsa np. linux
 #ifdef _WIN32   //Windows
-    #include <windows.h>    //Biblioteka windows API - potrzebna do skorzystania z GetAsyncKeyState
     //Stan bitu 15 sprawdza czy klawisz jest teraz wcisniety - sprawdza czy klawisz jest trzymany. Dla samego wcisnięcia sprawdzany jest bit 0 - (0x0001)
     bool Key_Throttle() { return (GetAsyncKeyState(VK_UP)    & 0x8000) != 0; }  //Test czy klawisz sztalki w gore jest wcisniety dla throttle
     bool Key_Brake()    { return (GetAsyncKeyState(VK_SPACE) & 0x8000) != 0; }  //Test czy klawisz spacji jest wcisniety dla brake
@@ -273,7 +273,7 @@ const double DT = 0.02; //Jest to liczba przykladowa i wymaga testowania
         pozwala sprawdzić, czy dany klawisz jest aktualnie wciśnięty (bit 15)
         lub czy został naciśnięty od ostatniego wywołania (bit 0).
     */
-#else   //Tutaj powinna byc instrukcja dla linux
+//#else   //Tutaj powinna byc instrukcja dla linux
 
 #endif
 
