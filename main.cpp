@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <algorithm> //Wymagane dla std::clamp(value, min, max);
 
 using namespace std;
 
@@ -155,6 +156,34 @@ class Car {
         //Transmission Car_Transmission;
         Dashboard Car_Dashboard;
 
+        const int MAX_SPEED_KMH = 200;
+        const int MASS_KG = 3000;
+        double MAX_Aceleration = 2.5;
+        double MAX_Brake = 5.0;
+
+        double CarSpeed = 0.0;
+        double CarThrottle = 0.0;
+        double CarBrake = 0.0;  //Zapisanie zmiennych double CarNazwa z powodu problemu nazw double Brake i class Brake 
+        
+        //Ogranicznik szybkosci zmian wartosci
+        static double Rate_Limiter(double Current_Value, double Target_Value, double Max_Value_For_Rate, double DT) { //DT - Krok czasu, Max_Value_For_Tate = maksymalna wartosc/predkosc na sekunde/klatke
+            double Target = Target_Value - Current_Value; //Ile brakuje do celu - do wartosci max dla np. throttle - Przedział od 0.0 do 1.0
+            double MAX_One_DT = Max_Value_For_Rate * DT; //Maksymalny krok jaki może być wykonany na 1 krok czasu   
+            if (Target > MAX_One_DT) Current_Value += Max_Value_For_Rate;   //Gdy wartosc do celu jest wieksza od max wartosci na klatke np. do max predkosci brakuje 4 km/h, max przyspieszenie na klatke 3km/h 
+            else if (Target < MAX_One_DT) Current_Value -= Max_Value_For_Rate;  //Gdy wartosc do celu jest mniejsza od max wartosci na klatke np. do max predkosci brakuje 2 km/h, max przyszpieczenie na klatke 3km/h
+            else Target = Target_Value;
+            return clamp(Current_Value, 0.0, 1.0);  //Przycina wartosci do przedzialu [0.0, 1.0] 
+
+            //Dzialanie clamp ponizej
+            /*
+            double clamp(double Current_Value, double min, double max) {
+                if (Current_Value < min) return min;
+                if (Current_Value > max) return max;
+                return value;
+            }
+            */
+        } 
+
     public:
         /*//Konstruktor 
         Car(FuelTank& C_Car_FuelTank, Brake& C_Car_Brake, Engine& C_Car_Engine, Transmission Car_Transmission, Dashboard& C_Car_Dashboard) 
@@ -168,7 +197,7 @@ class Car {
               /*Car_Transmission (),*/ 
               Car_Dashboard (Car_FuelTank, Car_Engine) {}
 
-        //Gettery
+        //Gettery klas
         Engine get_Engine() const {
             return this->Car_Engine;
         }
@@ -185,6 +214,17 @@ class Car {
             return this->Car_Dashboard;
         }
 
+        //Gettery zmiennych
+        double get_CarSpeed() const {
+            return this->CarSpeed;
+        }
+        double get_CatThrottle() const {
+            return this->CarThrottle;
+        }
+        double get_CarBrake() const {
+            return this->CarBrake;
+        }
+
         //Settery
         void set_FuelTank(FuelTank S_FuelTank) {
             Car_FuelTank = S_FuelTank;
@@ -194,15 +234,15 @@ class Car {
         }        
         /*void set_Transmission(Transmission S_Transmission) {
             Car_Transmission = S_Transmission;
-        }*/        
+        }*/   
+       
+        //Metody
+        void Acceleration()
+
+        void Braking()
 };
 
-const int MAX_SPEED_KMH = 200;
-
-const int MASS_KG = 3000;
-
 const double DT = 0.02; //Jest to liczba przykladowa i wymaga testowania
-
 //pętla update(dt) 
 
 int main ()

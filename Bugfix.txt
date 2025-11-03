@@ -1,0 +1,5 @@
+Bugfix 1
+-Literówki
+-Kolejność klas
+-Referencje klas
+-Wykasowanie dwóch setterów w klasie Car (Problem referencji klas)
