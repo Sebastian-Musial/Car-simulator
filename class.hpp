@@ -155,7 +155,7 @@ class Car {
         //Transmission Car_Transmission;
         Dashboard Car_Dashboard;
 
-        const int MAX_SPEED_KMH = 200;
+        const double MAX_SPEED = 8.0;
         const int MASS_KG = 3000;
         double MAX_Aceleration = 2.5;
         double MAX_Brake = 5.0;
@@ -245,6 +245,11 @@ class Car {
             double Acceleration = 0.0;
             Acceleration += CarThrottle * MAX_Aceleration;  //Dodajemy moc gazu do przyspieszenia
             Acceleration -= CarBrake * MAX_Brake;   //Odejmuje moc hamulca do przyspieszenia
+
+            /* Poprzednia mechanika zmiany predkosci
             CarSpeed = max(0.0, CarSpeed + (Acceleration * DT));    //Funkcja wybierajaca wieksza wartosc. Zabezpieczenie przed ujemna predkoscia
+            if (CarSpeed >= MAX_SPEED) CarSpeed = MAX_SPEED;    //Ogranicznik maksymalnej predkosci */
+
+            CarSpeed = clamp( (CarSpeed + Acceleration * DT), 0.0, MAX_SPEED);  //Ogranicznik spelniajacy zalozenia: 0 <= V <= Vmax
         }
-};
+}; 
