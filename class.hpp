@@ -155,15 +155,18 @@ class Car {
         //Transmission Car_Transmission;
         Dashboard Car_Dashboard;
 
-        const double MAX_SPEED = 8.0;
-        const int MASS_KG = 3000;
-        double MAX_Aceleration = 2.5;
-        double MAX_Brake = 5.0;
+        const double MAX_SPEED_MS = 50.0; //[M/S] -> 50 m/s * 3.6 = 180 km/h. Mnozenie przez 3.6 w celu uzyskania km/h
+        const int MASS_KG = 1000;
+        const double F_Eng_MAX = 4000.0;    //Sila w [N] na potrzebny nowej mechaniki  sumy wszystkich sil
+        const double F_Brake_MAX = 6500.0;      //Sila w [N] na potrzebny nowej mechaniki  sumy wszystkich sil
 
-        double CarSpeed = 0.0;
+        double CarSpeed = 0.0;  //[M/S]
         double CarThrottle = 0.0;
         double CarBrake = 0.0;  //Zapisanie zmiennych double CarNazwa z powodu problemu nazw double Brake i class Brake 
         double Slew = 3; //O ile jednostek na sekundę moze zostac dokonana zmiana wartosci. W tym przypadku 3 jednostki na sekunde
+
+        double c_roll = 75.0;   //Opor toczenia  [N]
+        double c_drag = 0.5;    //Opor powietrza [N / (m/s)^2]
         
         //Ogranicznik szybkosci zmian wartosci
         static double Rate_Limiter(double Current_Value, double Target_Value, double Max_Value_For_Rate, double DT) { //DT - Krok czasu, Max_Value_For_Tate = maksymalna wartosc/predkosc na sekunde/klatke
@@ -215,7 +218,7 @@ class Car {
         }
 
         //Gettery zmiennych
-        double get_CarSpeed() const {
+        double get_CarSpeed() const {   //Zwracana jednostka to [m/s], w celu uzyskania [km/h] wymagane mnozenie przez 3.6
             return this->CarSpeed;
         }
         double get_CatThrottle() const {
@@ -243,13 +246,21 @@ class Car {
 
             //Mechanika przyspieszenia:  Przyspieszenie = Throttle - Brake
             double Acceleration = 0.0;
-            Acceleration += CarThrottle * MAX_Aceleration;  //Dodajemy moc gazu do przyspieszenia
-            Acceleration -= CarBrake * MAX_Brake;   //Odejmuje moc hamulca do przyspieszenia
+
+            double F_Eng = 0.0;     //[N]
+            double F_Brake = 0.0;   //[N]
+            double F_Drag = c_drag * (CarSpeed * CarSpeed); //[N] 
+            double F_Roll = c_roll;    //[N]
+
+            F_Eng = CarThrottle * F_Eng_MAX;  //Tworzymy moc napedu
+            F_Brake = CarBrake * F_Brake_MAX;   //Tworzymy moc hamulca
+            
+            Acceleration = ((F_Eng - F_Brake - F_Drag - F_Roll) / MASS_KG); //[m/s^2]
 
             /* Poprzednia mechanika zmiany predkosci
             CarSpeed = max(0.0, CarSpeed + (Acceleration * DT));    //Funkcja wybierajaca wieksza wartosc. Zabezpieczenie przed ujemna predkoscia
             if (CarSpeed >= MAX_SPEED) CarSpeed = MAX_SPEED;    //Ogranicznik maksymalnej predkosci */
 
-            CarSpeed = clamp( (CarSpeed + Acceleration * DT), 0.0, MAX_SPEED);  //Ogranicznik spelniajacy zalozenia: 0 <= V <= Vmax
+            CarSpeed = clamp( (CarSpeed + Acceleration * DT), 0.0, MAX_SPEED_MS);  //Ogranicznik spelniajacy zalozenia: 0 <= V <= Vmax. [m/s]
         }
 }; 
