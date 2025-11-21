@@ -1,3 +1,6 @@
+Bugfix 3
+-Naprawiono błąd, który występował, gdy wybieraliśmy opcję „Brak testu”, a samochód nie jechał po naciśnięciu klawisza
+
 Bugfix 2
 -Poprawki w Rate limiter 
 -Literówki 

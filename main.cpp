@@ -37,6 +37,14 @@ int main ()
         cin >> Choice;
         cout << "\n";
         if (Choice == 1) Test = Test_X::on;
+        else 
+        {
+        #ifdef _WIN32   //Czyszczenie konsoli - Windows
+            system("cls");
+        #else           //Czyszczenei konsoli - Nie windows, wersja linux albo mac. W obecnej chwili program dziala tylko dla windows.
+            system("clear");
+        #endif
+        }
 
     while (true) {
         if (Key_Quit()) break;
@@ -69,7 +77,7 @@ int main ()
         bool Thr = Key_Throttle();
         bool Brk = Key_Brake();
 
-        if(Test == Test_X::off) Audi.Speed_Update(DT, Thr, Brk);     //Sprawdzenie czy nie dziala w tle test dla sprawdzania odleglosci
+        if(Test != Test_X::off) Audi.Speed_Update(DT, Thr, Brk);     //Sprawdzenie czy nie dziala w tle test dla sprawdzania odleglosci
 
         //Wypisanie tekstu z informacjami w czasie rzeczywistym
         printf("\rspeed=%6.2f km/h   throttle=%.2f   brake=%.2f   fuel=%.2f L   engine=%s   ",
