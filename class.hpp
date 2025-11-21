@@ -176,15 +176,6 @@ class Car {
             else if (Target < -MAX_One_DT) Current_Value -= MAX_One_DT;  //Gdy wartosc do celu jest mniejsza od max wartosci na klatke np. do max predkosci brakuje 2 km/h, max przyszpieczenie na klatke 3km/h
             else Current_Value = Target_Value;
             return clamp(Current_Value, 0.0, 1.0);  //Przycina wartosci do przedzialu [0.0, 1.0] 
-
-            //Dzialanie clamp ponizej
-            /*
-            double clamp(double Current_Value, double min, double max) {
-                if (Current_Value < min) return min;
-                if (Current_Value > max) return max;
-                return value;
-            }
-            */
         } 
 
     public:

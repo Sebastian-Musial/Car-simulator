@@ -19,20 +19,11 @@ const double DT = 0.02; //Jest to liczba przykladowa i wymaga testowania
     bool Key_Throttle() { return (GetAsyncKeyState(VK_UP)    & 0x8000) != 0; }  //Test czy klawisz sztalki w gore jest wcisniety dla throttle
     bool Key_Brake()    { return (GetAsyncKeyState(VK_SPACE) & 0x8000) != 0; }  //Test czy klawisz spacji jest wcisniety dla brake
     bool Key_Quit()     { return (GetAsyncKeyState('Q')      & 0x8000) != 0; }  //Test czy klawisz Q jest wcisniety dla Quit
-    //Proces dzialania
-    /*
-    Funkcja: SHORT GetAsyncKeyState(int vKey);
-        Pozwala na zwracanie wartosci bitowych stanu danego klawisza i sprawdzenie go z bitami odpowiadającymi za wcisniecie klawisza
-        A dokladnie
-        Funkcja GetAsyncKeyState(int vKey) zwraca wartość 16-bitową,
-        w której poszczególne bity informują o stanie klawisza —
-        pozwala sprawdzić, czy dany klawisz jest aktualnie wciśnięty (bit 15)
-        lub czy został naciśnięty od ostatniego wywołania (bit 0).
-    */
+
 //#else   //Tutaj powinna byc instrukcja dla linux
 #endif
 
-double Zatrzy;
+double position;
 int Choice; //Zmienna z ktorej bede korzystal do wyborow uzytkownika typu tak/nie
 enum class Test_X {off, on, first_time};    //Zmienna typu wyliczeniowego do weryfikacji stanu danego testu
 Test_X Test = Test_X::first_time;   //Nazwa zmiennej jest chwilowa poniewaz nie wykorzystuje innych testow w programie. W przyszlosci moze sie zmienic
@@ -41,18 +32,16 @@ int main ()
 {
     Car Audi;
 
+        cout << "Czy chcesz uruchomic test po jakiej odleglosci auto rozpedzon do 50 km/h sie zatrzyma?\n1 - Tak / 2 - Nie" << endl;
+        cout << "Dokonaj wyboru wpisujac cyfre a nastepnie naciskajac enter: ";
+        cin >> Choice;
+        cout << "\n";
+        if (Choice == 1) Test = Test_X::on;
+
     while (true) {
         if (Key_Quit()) break;
 
-        if (Test == Test_X::first_time) {
-            cout << "Czy chcesz uruchomic test po jakiej odleglosci auto rozpedzon do 50 km/h sie zatrzyma?\n1 - Tak / 2 - Nie" << endl;
-            cout << "Dokonaj wyboru wpisujac cyfre a nastepnie naciskajac enter: ";
-            cin >> Choice;
-            cout << "\n";
-            if (Choice == 1) Test = Test_X::on;
-        }
-
-        if(Test == Test_X::on) Zatrzy = TEST_STOP(Audi, DT);
+        if(Test == Test_X::on) position = TEST_STOP(Audi, DT);
 
         if ((Test == Test_X::on) & (Audi.get_CarSpeed() == 0.0))
         {
@@ -63,7 +52,7 @@ int main ()
         #endif
 
             cout << "Test po jakiej odleglosci auto rozpedzone do 50 km/h sie zatrzymuje wlasnie sie zakoczyl"
-                "\nAuto zatrzymalo sie po "  << Zatrzy << " metrach"
+                "\nAuto zatrzymalo sie po "  << position << " metrach"
                 "\n\nZa 5 sekund program powroci do normalnego dzialania i bedziesz mogl kontrolowac autem" << endl;
             this_thread::sleep_for(chrono::seconds(5));
 
@@ -89,30 +78,7 @@ int main ()
                     Audi.get_Engine().get_Engine_on_off() ? "ON" : "OFF");
         fflush(stdout);
 
-        //Dzialanie
-        /*
-        printf jest buforem danych ktory wypisuje caly czas ta sama linie tekstu
-        Znak (\r) powoduje cofanie sie kursora na poczatek tej samej liunii
-        Skorzystanie z tych 2 opcji pozwala nadpisywac tekst i symulowac aktualizacje danych
-
-        fflush(stdout) wymusza oproznienie bufora i pokazanie aktualnej zawartosci z printf natychmiast
-        to znaczy nowo przygotowany tekst
-
-        W srodku mamy zawartosc tekstowa z formatowaniem tekstu oraz gettery klasy Car
-        w celu przekazania informacji o aktualnym statusie auta
-        */
-
         this_thread::sleep_for(chrono::milliseconds(16));
-        //Dzialanie
-        /*
-        this_thread - funcja obslugujaca aktualny watek programu
-        sleep_for - usypia/zatrzymuje dzialanie biezace watku na okreslony czat, w tym przypadku 16 millisekund
-        chrono::milliseconds(16) - chrono obsluguje czas w programie a zapis miliseconds(16) okresla obiekt czasu - 16 milisekund
-
-        calosc dzialania powoduje zatrzymanie watku programu - dzialania programu na 16 milisekund
-        czyli petla ma przerwy co 16 ms
-        uzyte jest to w celu bardziej rzeczywistej symulacji dzialnia programu - w przyblizeniu 60 razy na sekunde czyli 60 FPS  
-        */
     }
     return 0;
 }
