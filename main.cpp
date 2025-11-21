@@ -1,258 +1,14 @@
 #include <iostream>
 #include <string>
-#include <algorithm> //Wymagane dla std::clamp(value, min, max); + std::max(Value_A, Value_B);
 #include <chrono>   //Biblioteka do obsługi czasu  potrzebne dla pomiaru czasu i jednostek czasu 
 #include <thread>   //Biblioteka do obslugi wielowatkowosci i zarzadzania czasem w aplikacji - zarządza wątkami np. w sleep_for aby uspic petle
 #include <cstdio>   //Biblioteka dla wypisywania danych np, printf
 #include <windows.h>    //Biblioteka windows API - potrzebna do skorzystania z GetAsyncKeyState
+#include "class.hpp"
 
 using namespace std;
 
-class FuelTank {
-    private:
-        double FuelTank_Level;
-
-    public:
-        //Konstruktor
-        FuelTank(double C_FuelTank_Level) 
-            : FuelTank_Level (C_FuelTank_Level) {}
-
-        //Konstruktor domyslny
-        FuelTank() { FuelTank_Level = 5.0; }
-        
-        //Getter
-        double get_FuelTank_Level() const {
-            return this->FuelTank_Level;
-        }
-
-        //Setter
-        void set_FuelTank_Level(double S_FuelTank_Level) {
-            FuelTank_Level =S_FuelTank_Level;
-        }
-
-        //Metody
-        bool Consume_Fuel(double Amount) {
-            if (this->FuelTank_Level >= Amount) {
-                this->FuelTank_Level -= Amount;
-                return true;
-            } 
-            else return false;
-        }
-};
-
-class Brake {
-    private:
-        int Brake_Power;
-
-    public:
-        //Konstruktor
-        Brake(int C_Brake_Power)
-            : Brake_Power(C_Brake_Power) {}
-
-        //Konstruktor domyslny
-        Brake() { Brake_Power = 30; }
-
-        //Getter
-        int get_Brake_Power() const {
-            return this->Brake_Power;
-        }
-
-        //Setter
-        void set_Brake_Power(int S_Brake_Power) {
-            Brake_Power = S_Brake_Power;
-        }
-
-        //Metody
-        /*Potrzebna metoda hamowania ale brakuje nam predkosci do ktorej metoda moze sie odniesc*/
-        /*
-        void Stop(int Speed) {
-            while (Speed !=0)
-            {
-                Speed -= Brake_Power; //Uproszczona wersja - brak walidacji co sie stanie jak brake power bedzie wieksze od speed = wartosc ujemna
-            }
-        }
-        */
-};
-
-class Transmission {
-
-};
-
-class Engine {
-    private:
-        FuelTank& FuelTank_Ref;
-        double Start_Engine_Consumption;
-        double Ride_Consumption;
-        bool Engine_on_off;
-
-
-    public:
-        //Konstruktor
-        Engine( FuelTank& C_FuelTank_Ref, double C_Start_Engine_Consumption = 0.2, double C_Ride_Consumption = 0.1, bool C_Engine_on_off = false)
-            : FuelTank_Ref(C_FuelTank_Ref), Start_Engine_Consumption(C_Start_Engine_Consumption), Ride_Consumption(C_Ride_Consumption), Engine_on_off(C_Engine_on_off) {}
-
-        //Getter
-        double get_Start_Consumption() const {
-            return this->Start_Engine_Consumption;
-        }
-        double get_Ride_Consumption() const {
-            return this->Ride_Consumption;
-        }
-        bool get_Engine_on_off() const {
-            return this->Engine_on_off;
-        }
-
-        //Setter
-        void set_Start_Consumption(double S_Start_Consumption) {
-            Start_Engine_Consumption = S_Start_Consumption;
-        }
-        void set_Ride_Consumption(double S_Ride_Consumption) {
-            Ride_Consumption = S_Ride_Consumption;
-        }
-        void set_Engine_on_off(bool S_Engine_on_off) {
-            Engine_on_off = S_Engine_on_off;
-        }
-
-        //Metody
-        void Start_Engine () {  //Chwilowo void - pozniej prawdopodobnie zmienie na bool
-            //Start silnika wykorzystuje paliwo z baku            
-            if (FuelTank_Ref.Consume_Fuel(Start_Engine_Consumption)) {
-                set_Engine_on_off(true);
-                cout<<"Silnik zostal uruchomiony"<<endl;
-            }
-            else cout<<"Nie udalo sie uruchomic silnika. Byc moze brakuje paliwa"<<endl;
-        }
-        bool Ride () {
-            //Jazda wykorzystuje paliwo
-            if (Engine_on_off == true && FuelTank_Ref.Consume_Fuel(Ride_Consumption) ) return true; //Najpierw sprawdzamy czy silnik jest uruchomiony, jezeli tak to sprawdzamy drugi warunek logiczny
-            else return false;
-        }
-};
-
-class Dashboard {
-    private:
-        FuelTank& FuelTank_Ref;
-        Engine& Engine_Ref;
-
-    public:
-        //Konstruktor
-        Dashboard(FuelTank& C_FuelTank_Ref, Engine& C_Engine_Ref)
-            : FuelTank_Ref(C_FuelTank_Ref), Engine_Ref(C_Engine_Ref) {}
-
-        //Metody
-        void Car_Information() {
-            cout<<"<--------Informacje o aucie-------->"<<endl;
-            //Silnik
-            if(Engine_Ref.get_Engine_on_off()) cout<<"Silnik jest uruchomiony"<<endl;
-            else cout<<"Silnik jest wylaczony"<<endl;
-            //Paliwo
-            cout<<"W baku jest: "<<FuelTank_Ref.get_FuelTank_Level()<<"L paliwa"<<endl;
-            //Predkosc
-            /*Brakuje metody w Car*/
-        }
-};
-
-class Car {
-    private:
-        FuelTank Car_FuelTank;
-        Brake Car_Brake;
-        Engine Car_Engine;
-        //Transmission Car_Transmission;
-        Dashboard Car_Dashboard;
-
-        const int MAX_SPEED_KMH = 200;
-        const int MASS_KG = 3000;
-        double MAX_Aceleration = 2.5;
-        double MAX_Brake = 5.0;
-
-        double CarSpeed = 0.0;
-        double CarThrottle = 0.0;
-        double CarBrake = 0.0;  //Zapisanie zmiennych double CarNazwa z powodu problemu nazw double Brake i class Brake 
-        double Slew = 3; //O ile jednostek na sekundę moze zostac dokonana zmiana wartosci. W tym przypadku 3 jednostki na sekunde
-        
-        //Ogranicznik szybkosci zmian wartosci
-        static double Rate_Limiter(double Current_Value, double Target_Value, double Max_Value_For_Rate, double DT) { //DT - Krok czasu, Max_Value_For_Tate = maksymalna wartosc/predkosc na sekunde/klatke
-            double Target = Target_Value - Current_Value; //Ile brakuje do celu - do wartosci max dla np. throttle - Przedział od 0.0 do 1.0
-            double MAX_One_DT = Max_Value_For_Rate * DT; //Maksymalny krok jaki może być wykonany na 1 krok czasu   
-            if (Target > MAX_One_DT) Current_Value += MAX_One_DT;   //Gdy wartosc do celu jest wieksza od max wartosci na klatke np. do max predkosci brakuje 4 km/h, max przyspieszenie na klatke 3km/h 
-            else if (Target < -MAX_One_DT) Current_Value -= MAX_One_DT;  //Gdy wartosc do celu jest mniejsza od max wartosci na klatke np. do max predkosci brakuje 2 km/h, max przyszpieczenie na klatke 3km/h
-            else Current_Value = Target_Value;
-            return clamp(Current_Value, 0.0, 1.0);  //Przycina wartosci do przedzialu [0.0, 1.0] 
-
-            //Dzialanie clamp ponizej
-            /*
-            double clamp(double Current_Value, double min, double max) {
-                if (Current_Value < min) return min;
-                if (Current_Value > max) return max;
-                return value;
-            }
-            */
-        } 
-
-    public:
-        /*//Konstruktor 
-        Car(FuelTank& C_Car_FuelTank, Brake& C_Car_Brake, Engine& C_Car_Engine, Transmission Car_Transmission, Dashboard& C_Car_Dashboard) 
-            :  Car_FuelTank (C_Car_FuelTank), Car_Brake (C_Car_Brake), Car_Engine (C_Car_Engine, C_Car_FuelTank), Car_Transmission (Car_Transmission), Car_Dashboard (C_Car_Dashboard, C_Car_FuelTank, C_Car_Engine) {}
-        */
-        //Konstruktor domyslny
-        Car() 
-            : Car_FuelTank (), 
-              Car_Brake (), 
-              Car_Engine (Car_FuelTank), 
-              /*Car_Transmission (),*/ 
-              Car_Dashboard (Car_FuelTank, Car_Engine) {}
-
-        //Gettery klas
-        Engine get_Engine() const {
-            return this->Car_Engine;
-        }
-        FuelTank get_Car_FuelTank() const {
-            return this->Car_FuelTank;
-        }      
-        Brake get_Car_Brake() const {
-            return this->Car_Brake;
-        }      
-        /*Transmission get_Car_Transmission() const {
-            return this->get_Car_Transmission;
-        }*/      
-        Dashboard get_Car_Dashboard() const {
-            return this->Car_Dashboard;
-        }
-
-        //Gettery zmiennych
-        double get_CarSpeed() const {
-            return this->CarSpeed;
-        }
-        double get_CatThrottle() const {
-            return this->CarThrottle;
-        }
-        double get_CarBrake() const {
-            return this->CarBrake;
-        }
-
-        //Settery
-        void set_FuelTank(FuelTank S_FuelTank) {
-            Car_FuelTank = S_FuelTank;
-        }       
-        void set_Brake(Brake S_Brake) {
-            Car_Brake = S_Brake;
-        }        
-        /*void set_Transmission(Transmission S_Transmission) {
-            Car_Transmission = S_Transmission;
-        }*/   
-       
-        //Metody
-        void Speed_Update (double DT, bool Click_Throttle, bool Click_Brake) {
-            CarThrottle = Rate_Limiter(CarThrottle, Click_Throttle ? 1.0:0.0, Slew ,DT);
-            CarBrake = Rate_Limiter(CarBrake, Click_Brake ? 1.0:0.0, Slew ,DT);
-
-            //Mechanika przyspieszenia:  Przyspieszenie = Throttle - Brake
-            double Acceleration = 0.0;
-            Acceleration += CarThrottle * MAX_Aceleration;  //Dodajemy moc gazu do przyspieszenia
-            Acceleration -= CarBrake * MAX_Brake;   //Odejmuje moc hamulca do przyspieszenia
-            CarSpeed = max(0.0, CarSpeed + (Acceleration * DT));    //Funkcja wybierajaca wieksza wartosc. Zabezpieczenie przed ujemna predkoscia
-        }
-};
+extern double TEST_STOP (Car & X, const double & DT);
 
 const double DT = 0.02; //Jest to liczba przykladowa i wymaga testowania
 //pętla update(dt) 
@@ -263,65 +19,66 @@ const double DT = 0.02; //Jest to liczba przykladowa i wymaga testowania
     bool Key_Throttle() { return (GetAsyncKeyState(VK_UP)    & 0x8000) != 0; }  //Test czy klawisz sztalki w gore jest wcisniety dla throttle
     bool Key_Brake()    { return (GetAsyncKeyState(VK_SPACE) & 0x8000) != 0; }  //Test czy klawisz spacji jest wcisniety dla brake
     bool Key_Quit()     { return (GetAsyncKeyState('Q')      & 0x8000) != 0; }  //Test czy klawisz Q jest wcisniety dla Quit
-    //Proces dzialania
-    /*
-    Funkcja: SHORT GetAsyncKeyState(int vKey);
-        Pozwala na zwracanie wartosci bitowych stanu danego klawisza i sprawdzenie go z bitami odpowiadającymi za wcisniecie klawisza
-        A dokladnie
-        Funkcja GetAsyncKeyState(int vKey) zwraca wartość 16-bitową,
-        w której poszczególne bity informują o stanie klawisza —
-        pozwala sprawdzić, czy dany klawisz jest aktualnie wciśnięty (bit 15)
-        lub czy został naciśnięty od ostatniego wywołania (bit 0).
-    */
-//#else   //Tutaj powinna byc instrukcja dla linux
 
+//#else   //Tutaj powinna byc instrukcja dla linux
 #endif
 
+double position;
+int Choice; //Zmienna z ktorej bede korzystal do wyborow uzytkownika typu tak/nie
+enum class Test_X {off, on, first_time};    //Zmienna typu wyliczeniowego do weryfikacji stanu danego testu
+Test_X Test = Test_X::first_time;   //Nazwa zmiennej jest chwilowa poniewaz nie wykorzystuje innych testow w programie. W przyszlosci moze sie zmienic
 
 int main ()
 {
-    cout<<"UP = throttle, SPACE = brake, Q = quit"<<endl;
-
     Car Audi;
+
+        cout << "Czy chcesz uruchomic test po jakiej odleglosci auto rozpedzon do 50 km/h sie zatrzyma?\n1 - Tak / 2 - Nie" << endl;
+        cout << "Dokonaj wyboru wpisujac cyfre a nastepnie naciskajac enter: ";
+        cin >> Choice;
+        cout << "\n";
+        if (Choice == 1) Test = Test_X::on;
 
     while (true) {
         if (Key_Quit()) break;
 
+        if(Test == Test_X::on) position = TEST_STOP(Audi, DT);
+
+        if ((Test == Test_X::on) & (Audi.get_CarSpeed() == 0.0))
+        {
+        #ifdef _WIN32   //Czyszczenie konsoli - Windows
+            system("cls");
+        #else           //Czyszczenei konsoli - Nie windows, wersja linux albo mac. W obecnej chwili program dziala tylko dla windows.
+            system("clear");
+        #endif
+
+            cout << "Test po jakiej odleglosci auto rozpedzone do 50 km/h sie zatrzymuje wlasnie sie zakoczyl"
+                "\nAuto zatrzymalo sie po "  << position << " metrach"
+                "\n\nZa 5 sekund program powroci do normalnego dzialania i bedziesz mogl kontrolowac autem" << endl;
+            this_thread::sleep_for(chrono::seconds(5));
+
+            Test = Test_X::off;
+
+        #ifdef _WIN32
+            system("cls");  //Czyszczenie konsoli - Windows
+        #else
+            system("clear");    //Czyszczenei konsoli - Nie windows, wersja linux albo mac. W obecnej chwili program dziala tylko dla windows.
+        #endif
+            cout<<"UP = throttle, SPACE = brake, Q = quit"<<endl;
+        } 
+
         bool Thr = Key_Throttle();
         bool Brk = Key_Brake();
 
-        Audi.Speed_Update(DT, Thr, Brk);
+        if(Test == Test_X::off) Audi.Speed_Update(DT, Thr, Brk);     //Sprawdzenie czy nie dziala w tle test dla sprawdzania odleglosci
 
         //Wypisanie tekstu z informacjami w czasie rzeczywistym
         printf("\rspeed=%6.2f km/h   throttle=%.2f   brake=%.2f   fuel=%.2f L   engine=%s   ",
-                    Audi.get_CarSpeed(), Audi.get_CatThrottle(), Audi.get_CarBrake(),
+                    Audi.get_CarSpeed() * 3.6 , Audi.get_CatThrottle(), Audi.get_CarBrake(),    //Wystepuje tutaj mnozenie przez 3.6 w celu zamiany jednostki m/s na km/h
                     Audi.get_Car_FuelTank().get_FuelTank_Level(),
                     Audi.get_Engine().get_Engine_on_off() ? "ON" : "OFF");
         fflush(stdout);
-        //Dzialanie
-        /*
-        printf jest buforem danych ktory wypisuje caly czas ta sama linie tekstu
-        Znak (\r) powoduje cofanie sie kursora na poczatek tej samej liunii
-        Skorzystanie z tych 2 opcji pozwala nadpisywac tekst i symulowac aktualizacje danych
-
-        fflush(stdout) wymusza oproznienie bufora i pokazanie aktualnej zawartosci z printf natychmiast
-        to znaczy nowo przygotowany tekst
-
-        W srodku mamy zawartosc tekstowa z formatowaniem tekstu oraz gettery klasy Car
-        w celu przekazania informacji o aktualnym statusie auta
-        */
 
         this_thread::sleep_for(chrono::milliseconds(16));
-        //Dzialanie
-        /*
-        this_thread - funcja obslugujaca aktualny watek programu
-        sleep_for - usypia/zatrzymuje dzialanie biezace watku na okreslony czat, w tym przypadku 16 millisekund
-        chrono::milliseconds(16) - chrono obsluguje czas w programie a zapis miliseconds(16) okresla obiekt czasu - 16 milisekund
-
-        calosc dzialania powoduje zatrzymanie watku programu - dzialania programu na 16 milisekund
-        czyli petla ma przerwy co 16 ms
-        uzyte jest to w celu bardziej rzeczywistej symulacji dzialnia programu - w przyblizeniu 60 razy na sekunde czyli 60 FPS  
-        */
     }
     return 0;
 }
