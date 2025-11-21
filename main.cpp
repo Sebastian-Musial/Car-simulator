@@ -8,6 +8,8 @@
 
 using namespace std;
 
+extern double TEST_STOP (Car & X, const double & DT);
+
 const double DT = 0.02; //Jest to liczba przykladowa i wymaga testowania
 //pętla update(dt) 
 
@@ -30,20 +32,55 @@ const double DT = 0.02; //Jest to liczba przykladowa i wymaga testowania
 //#else   //Tutaj powinna byc instrukcja dla linux
 #endif
 
+double Zatrzy;
+int Choice; //Zmienna z ktorej bede korzystal do wyborow uzytkownika typu tak/nie
+enum class Test_X {off, on, first_time};    //Zmienna typu wyliczeniowego do weryfikacji stanu danego testu
+Test_X Test = Test_X::first_time;   //Nazwa zmiennej jest chwilowa poniewaz nie wykorzystuje innych testow w programie. W przyszlosci moze sie zmienic
 
 int main ()
 {
-    cout<<"UP = throttle, SPACE = brake, Q = quit"<<endl;
-
     Car Audi;
 
     while (true) {
         if (Key_Quit()) break;
 
+        if (Test == Test_X::first_time) {
+            cout << "Czy chcesz uruchomic test po jakiej odleglosci auto rozpedzon do 50 km/h sie zatrzyma?\n1 - Tak / 2 - Nie" << endl;
+            cout << "Dokonaj wyboru wpisujac cyfre a nastepnie naciskajac enter: ";
+            cin >> Choice;
+            cout << "\n";
+            if (Choice == 1) Test = Test_X::on;
+        }
+
+        if(Test == Test_X::on) Zatrzy = TEST_STOP(Audi, DT);
+
+        if ((Test == Test_X::on) & (Audi.get_CarSpeed() == 0.0))
+        {
+        #ifdef _WIN32   //Czyszczenie konsoli - Windows
+            system("cls");
+        #else           //Czyszczenei konsoli - Nie windows, wersja linux albo mac. W obecnej chwili program dziala tylko dla windows.
+            system("clear");
+        #endif
+
+            cout << "Test po jakiej odleglosci auto rozpedzone do 50 km/h sie zatrzymuje wlasnie sie zakoczyl"
+                "\nAuto zatrzymalo sie po "  << Zatrzy << " metrach"
+                "\n\nZa 5 sekund program powroci do normalnego dzialania i bedziesz mogl kontrolowac autem" << endl;
+            this_thread::sleep_for(chrono::seconds(5));
+
+            Test = Test_X::off;
+
+        #ifdef _WIN32
+            system("cls");  //Czyszczenie konsoli - Windows
+        #else
+            system("clear");    //Czyszczenei konsoli - Nie windows, wersja linux albo mac. W obecnej chwili program dziala tylko dla windows.
+        #endif
+            cout<<"UP = throttle, SPACE = brake, Q = quit"<<endl;
+        } 
+
         bool Thr = Key_Throttle();
         bool Brk = Key_Brake();
 
-        Audi.Speed_Update(DT, Thr, Brk);
+        if(Test == Test_X::off) Audi.Speed_Update(DT, Thr, Brk);     //Sprawdzenie czy nie dziala w tle test dla sprawdzania odleglosci
 
         //Wypisanie tekstu z informacjami w czasie rzeczywistym
         printf("\rspeed=%6.2f km/h   throttle=%.2f   brake=%.2f   fuel=%.2f L   engine=%s   ",
@@ -51,6 +88,7 @@ int main ()
                     Audi.get_Car_FuelTank().get_FuelTank_Level(),
                     Audi.get_Engine().get_Engine_on_off() ? "ON" : "OFF");
         fflush(stdout);
+
         //Dzialanie
         /*
         printf jest buforem danych ktory wypisuje caly czas ta sama linie tekstu

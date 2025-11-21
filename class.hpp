@@ -228,7 +228,7 @@ class Car {
             return this->CarBrake;
         }
 
-        //Settery
+        //Settery klas
         void set_FuelTank(FuelTank S_FuelTank) {
             Car_FuelTank = S_FuelTank;
         }       
@@ -238,6 +238,14 @@ class Car {
         /*void set_Transmission(Transmission S_Transmission) {
             Car_Transmission = S_Transmission;
         }*/   
+        
+        //Settery zmiennych
+        void set_CarBrake(double S_CarBrake) {
+            CarBrake = S_CarBrake;
+        }
+        void set_CarSpeed(double S_CarSpeed) {
+            CarSpeed = S_CarSpeed;
+        }
        
         //Metody
         void Speed_Update (double DT, bool Click_Throttle, bool Click_Brake) {
