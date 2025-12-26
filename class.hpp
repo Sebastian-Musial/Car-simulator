@@ -6,11 +6,12 @@ using namespace std;
 class FuelTank {
     private:
         double FuelTank_Level;
+        double FuelTank_Capacity;
 
     public:
         //Konstruktor
-        FuelTank(double C_FuelTank_Level) 
-            : FuelTank_Level (C_FuelTank_Level) {}
+        FuelTank(double C_FuelTank_Level, double C_FuelTank_Capacity) 
+            : FuelTank_Level (C_FuelTank_Level), FuelTank_Capacity (C_FuelTank_Capacity) {}
 
         //Konstruktor domyslny
         FuelTank() { FuelTank_Level = 5.0; }
@@ -33,6 +34,11 @@ class FuelTank {
             } 
             else return false;
         }
+
+        void Refuel(int Amount) {
+            if (this->FuelTank_Level + Amount >= FuelTank_Capacity) return;
+            else this ->FuelTank_Level += Amount;
+        } 
 };
 
 class Brake {
