@@ -269,3 +269,32 @@ class Car {
             CarSpeed = clamp( (CarSpeed + Acceleration * DT), 0.0, MAX_SPEED_MS);  //Ogranicznik spelniajacy zalozenia: 0 <= V <= Vmax. [m/s]
         }
 }; 
+
+/*==============================*/
+/*Model strategy dla modelu spalania paliwa w trybie eco, normal i sport*/
+class ConsumptionModel {
+    public:
+    virtual double Fuel_Flow_Lps (double CarThrottle, double CarSpeed) = 0; //CarSpeed - M/S. Metoda ta jest wirtualna i nalezy do niej zdefiniowac implementacje w klasach ktore beda ja dziedziczyc
+    virtual ~ConsumptionModel() = default; //Automatyczny Destruktor - dziala na na pochodnej klasie (dzieki virtual) a nastepnie na bazowej np. ConsumptionModel_Eco -> ConsumptionModel
+};
+
+class ConsumptionModel_Eco : public ConsumptionModel {
+    public:
+        double Fuel_Flow_Lps (double CarThrottle, double CarSpeed) override {   //Nadpisywanie wirtualnej metody z klasy bazowej [Fuel_Flow_Lps]
+            return 0.7 * CarThrottle * CarSpeed;
+        }
+};
+
+class ConsumptionModel_Normal : public ConsumptionModel {
+    public:
+        double Fuel_Flow_Lps (double CarThrottle, double CarSpeed) override {   //Nadpisywanie wirtualnej metody z klasy bazowej [Fuel_Flow_Lps]
+            return 1 * CarThrottle * CarSpeed;
+        }
+};
+
+class ConsumptionModel_Sport : public ConsumptionModel {
+    public:
+        double Fuel_Flow_Lps (double CarThrottle, double CarSpeed) override {   //Nadpisywanie wirtualnej metody z klasy bazowej [Fuel_Flow_Lps]
+            return 1.5 * CarThrottle * CarSpeed;
+        }
+};
