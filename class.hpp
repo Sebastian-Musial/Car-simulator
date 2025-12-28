@@ -1,7 +1,12 @@
 #include <iostream>
-#include <algorithm> //Wymagane dla std::clamp(value, min, max); + std::max(Value_A, Value_B);
+#include <algorithm> //Wymagane dla std::clamp(value, min, max); + std::max(Value_A, Value_B);#
+#include <memory> //Wymagana do uzytego wzorca state dla stanu silnika
 
 using namespace std;
+
+class EngineState;
+class Engine_off;
+class Engine_on;
 
 class FuelTank {
     private:
@@ -80,53 +85,61 @@ class Transmission {
 };
 
 class Engine {
+    enum class ConsumptionStatus { Eco, Normal, Sport, Off};
     private:
         FuelTank& FuelTank_Ref;
-        double Start_Engine_Consumption;
-        double Ride_Consumption;
-        bool Engine_on_off;
-
+        unique_ptr<EngineState> State;
+        unique_ptr<ConsumptionModel> Consumption_Fuel;
+        ConsumptionStatus Consumption_Status;
 
     public:
         //Konstruktor
-        Engine( FuelTank& C_FuelTank_Ref, double C_Start_Engine_Consumption = 0.2, double C_Ride_Consumption = 0.1, bool C_Engine_on_off = false)
-            : FuelTank_Ref(C_FuelTank_Ref), Start_Engine_Consumption(C_Start_Engine_Consumption), Ride_Consumption(C_Ride_Consumption), Engine_on_off(C_Engine_on_off) {}
+        Engine( FuelTank& C_FuelTank_Ref, ConsumptionStatus C_Consumption_Beginning = ConsumptionStatus::Off)
+            : FuelTank_Ref(C_FuelTank_Ref), State(make_unique<Engine_off>()), Consumption_Fuel(make_unique<ConsumptionModel_Normal>()), Consumption_Status(C_Consumption_Beginning) {}
 
         //Getter
-        double get_Start_Consumption() const {
-            return this->Start_Engine_Consumption;
-        }
-        double get_Ride_Consumption() const {
-            return this->Ride_Consumption;
-        }
-        bool get_Engine_on_off() const {
-            return this->Engine_on_off;
+        bool Engine_is_On() const {
+            return State->Check_Engine_On();
         }
 
         //Setter
-        void set_Start_Consumption(double S_Start_Consumption) {
-            Start_Engine_Consumption = S_Start_Consumption;
+        void set_Engine_On() {
+            State = make_unique<Engine_on>();
+            set_Consumption_Normal(); //Kazde uruchomienie silnika ma ustawiac spalanie na normal
+            Consumption_Status = ConsumptionStatus::Normal;
         }
-        void set_Ride_Consumption(double S_Ride_Consumption) {
-            Ride_Consumption = S_Ride_Consumption;
+        void set_Engine_Off() {
+            State = make_unique<Engine_off>();
+            Consumption_Status = ConsumptionStatus::Off;
         }
-        void set_Engine_on_off(bool S_Engine_on_off) {
-            Engine_on_off = S_Engine_on_off;
+        void set_Consumption_Normal() {
+            Consumption_Fuel = make_unique<ConsumptionModel_Normal>();
+            Consumption_Status = ConsumptionStatus::Normal;
         }
-
+        void set_Consumption_Eco() {
+            Consumption_Fuel = make_unique<ConsumptionModel_Eco>();
+            Consumption_Status = ConsumptionStatus::Eco;
+        }
+        void set_Consumption_Sport() {
+            Consumption_Fuel = make_unique<ConsumptionModel_Sport>();
+            Consumption_Status = ConsumptionStatus::Sport;
+        }
         //Metody
-        void Start_Engine () {  //Chwilowo void - pozniej prawdopodobnie zmienie na bool
-            //Start silnika wykorzystuje paliwo z baku            
-            if (FuelTank_Ref.Consume_Fuel(Start_Engine_Consumption)) {
-                set_Engine_on_off(true);
-                cout<<"Silnik zostal uruchomiony"<<endl;
+        void Check_Consumption(ConsumptionStatus Consumption_Status) {
+            switch (Consumption_Status) {
+            case ConsumptionStatus::Off:
+                cout<<"Off"<<endl;
+                break;
+            case ConsumptionStatus::Normal:
+                cout<<"Normal"<<endl;
+                break;
+            case ConsumptionStatus::Eco:
+                cout<<"Eco"<<endl;
+                break;
+            case ConsumptionStatus::Sport:
+                cout<<"Sport"<<endl;
+                break;
             }
-            else cout<<"Nie udalo sie uruchomic silnika. Byc moze brakuje paliwa"<<endl;
-        }
-        bool Ride () {
-            //Jazda wykorzystuje paliwo
-            if (Engine_on_off == true && FuelTank_Ref.Consume_Fuel(Ride_Consumption) ) return true; //Najpierw sprawdzamy czy silnik jest uruchomiony, jezeli tak to sprawdzamy drugi warunek logiczny
-            else return false;
         }
 };
 
@@ -141,7 +154,7 @@ class Dashboard {
             : FuelTank_Ref(C_FuelTank_Ref), Engine_Ref(C_Engine_Ref) {}
 
         //Metody
-        void Car_Information() {
+        /*void Car_Information() {
             cout<<"<--------Informacje o aucie-------->"<<endl;
             //Silnik
             if(Engine_Ref.get_Engine_on_off()) cout<<"Silnik jest uruchomiony"<<endl;
@@ -150,7 +163,7 @@ class Dashboard {
             cout<<"W baku jest: "<<FuelTank_Ref.get_FuelTank_Level()<<"L paliwa"<<endl;
             //Predkosc
             /*Brakuje metody w Car*/
-        }
+        //}
 };
 
 class Car {
@@ -198,8 +211,8 @@ class Car {
               Car_Dashboard (Car_FuelTank, Car_Engine) {}
 
         //Gettery klas
-        Engine get_Engine() const {
-            return this->Car_Engine;
+        const Engine& get_Engine() const {
+            return Car_Engine;
         }
         FuelTank get_Car_FuelTank() const {
             return this->Car_FuelTank;
@@ -305,6 +318,7 @@ class ConsumptionModel_Sport : public ConsumptionModel {
 class EngineState {
     public:
         virtual double Real_Throttle (double R_Throttle) = 0;
+        virtual bool Check_Engine_On () = 0;
         virtual ~EngineState() = default; //Destruktor 
 };
 
@@ -313,6 +327,10 @@ class Engine_on : public EngineState {      //Throttle nie ingonowany
         double Real_Throttle( double R_Throttle) override {
             return R_Throttle;
         }
+
+        bool Check_Engine_On () override {
+            return true;
+        };
 };
 
 class Engine_off : public EngineState {     //Throttle ingonowany
@@ -320,4 +338,8 @@ class Engine_off : public EngineState {     //Throttle ingonowany
         double Real_Throttle( double R_Throttle) override {
             return 0.0;
         }
+
+        bool Check_Engine_On () override {
+            return false;
+        };
 };
