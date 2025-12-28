@@ -141,6 +141,10 @@ class Engine {
                 break;
             }
         }
+
+        double Real_Throttle(double Car_Throttle) {
+            return State->Real_Throttle(Car_Throttle);
+        }
 };
 
 class Dashboard {
@@ -260,8 +264,10 @@ class Car {
         //Metody
         void Speed_Update (double DT, bool Click_Throttle, bool Click_Brake) {
             //Click_Throttle = false;   TEST DLA NOWEJ MECHANIKI SPRAWDANIA STANU SILNIKA
-            CarThrottle = Rate_Limiter(CarThrottle, Click_Throttle ? 1.0:0.0, Slew ,DT);
+            //CarThrottle = Rate_Limiter(CarThrottle, Click_Throttle ? 1.0:0.0, Slew ,DT);
+            CarThrottle = Car_Engine.Real_Throttle(Rate_Limiter(CarThrottle, Click_Throttle ? 1.0:0.0, Slew ,DT)); //Gdy engine off - throttle igonorowany
             CarBrake = Rate_Limiter(CarBrake, Click_Brake ? 1.0:0.0, Slew ,DT);
+
 
             //Mechanika przyspieszenia:  Przyspieszenie = Throttle - Brake
             double Acceleration = 0.0;
