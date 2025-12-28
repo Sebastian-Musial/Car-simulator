@@ -82,8 +82,8 @@ int main ()
         //Wypisanie tekstu z informacjami w czasie rzeczywistym
         printf("\rspeed=%6.2f km/h   throttle=%.2f   brake=%.2f   fuel=%.2f L   engine=%s   ",
                     Audi.get_CarSpeed() * 3.6 , Audi.get_CatThrottle(), Audi.get_CarBrake(),    //Wystepuje tutaj mnozenie przez 3.6 w celu zamiany jednostki m/s na km/h
-                    Audi.get_Car_FuelTank().get_FuelTank_Level(),
-                    Audi.get_Engine().get_Engine_on_off() ? "ON" : "OFF");
+                    Audi.get_Car_FuelTank().get_FuelTank_Level());
+                    //Audi.get_Engine().get_Engine_on_off() ? "ON" : "OFF");
         fflush(stdout);
 
         this_thread::sleep_for(chrono::milliseconds(16));
