@@ -246,6 +246,7 @@ class Car {
        
         //Metody
         void Speed_Update (double DT, bool Click_Throttle, bool Click_Brake) {
+            //Click_Throttle = false;   TEST DLA NOWEJ MECHANIKI SPRAWDANIA STANU SILNIKA
             CarThrottle = Rate_Limiter(CarThrottle, Click_Throttle ? 1.0:0.0, Slew ,DT);
             CarBrake = Rate_Limiter(CarBrake, Click_Brake ? 1.0:0.0, Slew ,DT);
 
@@ -296,5 +297,27 @@ class ConsumptionModel_Sport : public ConsumptionModel {
     public:
         double Fuel_Flow_Lps (double CarThrottle, double CarSpeed) override {   //Nadpisywanie wirtualnej metody z klasy bazowej [Fuel_Flow_Lps]
             return 1.5 * CarThrottle * CarSpeed;
+        }
+};
+
+/*==============================*/
+/*Model state dla silnika on/off */
+class EngineState {
+    public:
+        virtual double Real_Throttle (double R_Throttle) = 0;
+        virtual ~EngineState() = default; //Destruktor 
+};
+
+class Engine_on : public EngineState {      //Throttle nie ingonowany
+    public:
+        double Real_Throttle( double R_Throttle) override {
+            return R_Throttle;
+        }
+};
+
+class Engine_off : public EngineState {     //Throttle ingonowany
+    public:
+        double Real_Throttle( double R_Throttle) override {
+            return 0.0;
         }
 };
