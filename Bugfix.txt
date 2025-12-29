@@ -1,3 +1,9 @@
+Bugfix 4 (3) - W git błędnie podpisany jako Bugfix 3 ze zmianami dotyczącymi klasy FuelTank
+-Naprawa błędów w konstuktorze
+-Zabezpieczenie w setterze - nie pozwala na wartosc ponizej zera i powyzej pojemnosci, capacity
+-Zebezpieczenie w Refuel - nie pozwala na wartosc ponizej zera i powyzej pojemnosci, capacity
+-Zamknięcie w komentarzu nie uzywanej metody
+
 Bugfix 3
 -Naprawiono błąd, który występował, gdy wybieraliśmy opcję „Brak testu”, a samochód nie jechał po naciśnięciu klawisza
 
