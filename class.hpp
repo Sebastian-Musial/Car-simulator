@@ -5,6 +5,8 @@
 
 using namespace std;
 
+class Car;
+
 class FuelTank {
     private:
         double FuelTank_Level;
@@ -86,13 +88,13 @@ class Engine {
     private:
         FuelTank& FuelTank_Ref;
         unique_ptr<EngineState> State;
-        unique_ptr<ConsumptionModel> Consumption_Fuel;
+        unique_ptr<ConsumptionModel> Consumption_Fuel_Model;
         ConsumptionStatus Consumption_Status;
 
     public:
         //Konstruktor
         Engine( FuelTank& C_FuelTank_Ref, ConsumptionStatus C_Consumption_Beginning = ConsumptionStatus::Off)
-            : FuelTank_Ref(C_FuelTank_Ref), State(make_unique<Engine_off>()), Consumption_Fuel(make_unique<ConsumptionModel_Normal>()), Consumption_Status(C_Consumption_Beginning) {}
+            : FuelTank_Ref(C_FuelTank_Ref), State(make_unique<Engine_off>()), Consumption_Fuel_Model(make_unique<ConsumptionModel_Normal>()), Consumption_Status(C_Consumption_Beginning) {}
 
         //Getter
         bool Engine_is_On() const {
@@ -110,15 +112,15 @@ class Engine {
             Consumption_Status = ConsumptionStatus::Off;
         }
         void set_Consumption_Normal() {
-            Consumption_Fuel = make_unique<ConsumptionModel_Normal>();
+            Consumption_Fuel_Model = make_unique<ConsumptionModel_Normal>();
             Consumption_Status = ConsumptionStatus::Normal;
         }
         void set_Consumption_Eco() {
-            Consumption_Fuel = make_unique<ConsumptionModel_Eco>();
+            Consumption_Fuel_Model = make_unique<ConsumptionModel_Eco>();
             Consumption_Status = ConsumptionStatus::Eco;
         }
         void set_Consumption_Sport() {
-            Consumption_Fuel = make_unique<ConsumptionModel_Sport>();
+            Consumption_Fuel_Model = make_unique<ConsumptionModel_Sport>();
             Consumption_Status = ConsumptionStatus::Sport;
         }
         //Metody
@@ -141,6 +143,16 @@ class Engine {
 
         double Real_Throttle(double Car_Throttle) {
             return State->Real_Throttle(Car_Throttle);
+        }
+
+        void Consume_Fuel(double CarThrottle, double CarSpeed, double DT) {
+            if (Engine_is_On()) {
+                double Requirement_Fuel = Consumption_Fuel_Model->Fuel_Flow_Lps(CarThrottle, CarSpeed);
+                double New_Fuel_Level = FuelTank_Ref.get_FuelTank_Level() - Requirement_Fuel * DT;
+
+                FuelTank_Ref.set_FuelTank_Level(max(0.0, New_Fuel_Level)); //Nie pozwala na wartosci ponizej zera - wybiera wieksza wartosc
+            }
+            if (Engine_is_On() && (FuelTank_Ref.get_FuelTank_Level() <= 0)) set_Engine_Off(); //Pusty bank wylacza silnik
         }
 };
 
@@ -284,5 +296,6 @@ class Car {
             if (CarSpeed >= MAX_SPEED) CarSpeed = MAX_SPEED;    //Ogranicznik maksymalnej predkosci */
 
             CarSpeed = clamp( (CarSpeed + Acceleration * DT), 0.0, MAX_SPEED_MS);  //Ogranicznik spelniajacy zalozenia: 0 <= V <= Vmax. [m/s]
+            Car_Engine.Consume_Fuel(get_CatThrottle(), get_CarSpeed(), DT); //Spalanie paliwa na koniec po okresleniu nowej predkosci
         }
 }; 
