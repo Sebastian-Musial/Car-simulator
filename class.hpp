@@ -13,12 +13,12 @@ class FuelTank {
         double FuelTank_Capacity;
 
     public:
-        //Konstruktor
-        FuelTank(double C_FuelTank_Level, double C_FuelTank_Capacity) 
-            : FuelTank_Level (C_FuelTank_Level), FuelTank_Capacity (C_FuelTank_Capacity) {}
+        //Konstruktor - ///Nie pozwala na wartosc baku ponizej zera oraz powyzej pojemnosci - Capacity. Mozliwe w uzyciu poniewaz wartosc C_FuelTank_Capacity jest incjalizowana przez usera lub przez wartosc domyslna
+        FuelTank(double C_FuelTank_Level = 5.0, double C_FuelTank_Capacity = 120.0) 
+            : FuelTank_Level (clamp(C_FuelTank_Level, 0.0, C_FuelTank_Capacity)), FuelTank_Capacity (C_FuelTank_Capacity) {}     
 
-        //Konstruktor domyslny
-        FuelTank() { FuelTank_Level = 5.0; }
+        //Konstruktor
+        //FuelTank() : FuelTank_Level(5.0), FuelTank_Capacity(120.0) {}
         
         //Getter
         double get_FuelTank_Level() const {
@@ -27,21 +27,20 @@ class FuelTank {
 
         //Setter
         void set_FuelTank_Level(double S_FuelTank_Level) {
-            FuelTank_Level =S_FuelTank_Level;
+            FuelTank_Level = clamp(S_FuelTank_Level, 0.0, FuelTank_Capacity);   //Nie pozwala na wartosc baku ponizej zera oraz powyzej pojemnosci - Capacity
         }
 
         //Metody
-        bool Consume_Fuel(double Amount) {
+        /*bool Consume_Fuel(double Amount) {
             if (this->FuelTank_Level >= Amount) {
                 this->FuelTank_Level -= Amount;
                 return true;
             } 
             else return false;
-        }
+        }*/
 
         void Refuel(int Amount) {
-            if (this->FuelTank_Level + Amount >= FuelTank_Capacity) return;
-            else this ->FuelTank_Level += Amount;
+            FuelTank_Level = clamp(FuelTank_Level + Amount, 0.0, FuelTank_Capacity); //Nie pozwala na wartosc baku ponizej zera oraz powyzej pojemnosci - Capacity
         } 
 };
 
