@@ -229,8 +229,11 @@ class Car {
         Engine& get_Engine() {  //Przeciazenie do modyfikacji przez getter
             return Car_Engine;
         }
-        FuelTank get_Car_FuelTank() const {
-            return this->Car_FuelTank;
+        const FuelTank& get_Car_FuelTank() const {
+            return Car_FuelTank;
+        }
+        FuelTank& get_Car_FuelTank() {   //Przeciazenie do modyfikacji przez getter
+            return Car_FuelTank;
         }      
         Brake get_Car_Brake() const {
             return this->Car_Brake;

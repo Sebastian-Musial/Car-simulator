@@ -20,6 +20,7 @@ const double DT = 0.02; //Jest to liczba przykladowa i wymaga testowania
     bool Key_Brake()    { return (GetAsyncKeyState(VK_SPACE) & 0x8000) != 0; }  //Test czy klawisz spacji jest wcisniety dla brake
     bool Key_Quit()     { return (GetAsyncKeyState('Q')      & 0x8000) != 0; }  //Test czy klawisz Q jest wcisniety dla Quit
     bool Key_Engine()   { return (GetAsyncKeyState('E')      & 0x0001) != 0; }  //Test czy klawisz E jest wcisniety dla Engine
+    bool Key_Refuel()   { return (GetAsyncKeyState('R')      & 0x0001) != 0; }  //Test czy klawisz R jest wcisniety dla Engine
 
 //#else   //Tutaj powinna byc instrukcja dla linux
 #endif
@@ -81,11 +82,13 @@ int main ()
         if(Test != Test_X::off) Audi.Speed_Update(DT, Thr, Brk);     //Sprawdzenie czy nie dziala w tle test dla sprawdzania odleglosci
 
         if (Key_Engine()) {
-            if (Audi.get_Engine().Engine_is_On())
-                Audi.get_Engine().set_Engine_Off();
-            else
-                Audi.get_Engine().set_Engine_On();
-}
+            if (Audi.get_Engine().Engine_is_On()) Audi.get_Engine().set_Engine_Off();
+            else Audi.get_Engine().set_Engine_On(); 
+        }
+
+        if (Key_Refuel()) {
+            Audi.get_Car_FuelTank().Refuel(5);  //Zgodnie z trescia zadania +5 L paliwa tankujemy
+        }
 
         //Wypisanie tekstu z informacjami w czasie rzeczywistym
         printf("\rspeed=%6.2f km/h   throttle=%.2f   brake=%.2f   fuel=%.2f L   engine=%s   ",
