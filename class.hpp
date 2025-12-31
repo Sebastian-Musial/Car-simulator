@@ -99,6 +99,23 @@ class Engine {
         bool Engine_is_On() const {
             return State->Check_Engine_On();
         }
+        string Check_Consumption() {
+            switch (Consumption_Status) {
+            case ConsumptionStatus::Off:
+                return "Off";
+                break;
+            case ConsumptionStatus::Normal:
+                return "Normal";
+                break;
+            case ConsumptionStatus::Eco:
+                return "Eco";
+                break;
+            case ConsumptionStatus::Sport:
+                return "Sport";
+                break;
+            }
+            return "Error";
+        }
 
         //Setter
         void set_Engine_On() {
@@ -123,7 +140,7 @@ class Engine {
             Consumption_Status = ConsumptionStatus::Sport;
         }
         //Metody
-        void Check_Consumption(ConsumptionStatus Consumption_Status) {
+        /*void Check_Consumption() {
             switch (Consumption_Status) {
             case ConsumptionStatus::Off:
                 cout<<"Off"<<endl;
@@ -138,7 +155,7 @@ class Engine {
                 cout<<"Sport"<<endl;
                 break;
             }
-        }
+        }*/
 
         double Real_Throttle(double Car_Throttle) {
             return State->Real_Throttle(Car_Throttle);

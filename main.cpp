@@ -5,6 +5,7 @@
 #include <cstdio>   //Biblioteka dla wypisywania danych np, printf
 #include <windows.h>    //Biblioteka windows API - potrzebna do skorzystania z GetAsyncKeyState
 #include "class.hpp"
+#include <iomanip>
 
 using namespace std;
 
@@ -21,6 +22,10 @@ const double DT = 0.02; //Jest to liczba przykladowa i wymaga testowania
     bool Key_Quit()     { return (GetAsyncKeyState('Q')      & 0x8000) != 0; }  //Test czy klawisz Q jest wcisniety dla Quit
     bool Key_Engine()   { return (GetAsyncKeyState('E')      & 0x0001) != 0; }  //Test czy klawisz E jest wcisniety dla Engine
     bool Key_Refuel()   { return (GetAsyncKeyState('R')      & 0x0001) != 0; }  //Test czy klawisz R jest wcisniety dla Engine
+
+    bool Key_Consume_Normal()   { return (GetAsyncKeyState('1')      & 0x0001) != 0; }  //Test czy klawisz R jest wcisniety dla Engine
+    bool Key_Consume_Eco()      { return (GetAsyncKeyState('2')      & 0x0001) != 0; }  //Test czy klawisz R jest wcisniety dla Engine
+    bool Key_Consume_Sport()    { return (GetAsyncKeyState('3')      & 0x0001) != 0; }  //Test czy klawisz R jest wcisniety dla Engine
 
 //#else   //Tutaj powinna byc instrukcja dla linux
 #endif
@@ -90,11 +95,18 @@ int main ()
             Audi.get_Car_FuelTank().Refuel(5);  //Zgodnie z trescia zadania +5 L paliwa tankujemy
         }
 
+        if (Audi.get_Engine().Engine_is_On()) {
+            if (Key_Consume_Normal())   {Audi.get_Engine().set_Consumption_Normal();}
+            else if (Key_Consume_Eco())      {Audi.get_Engine().set_Consumption_Eco();}
+            else if (Key_Consume_Sport())    {Audi.get_Engine().set_Consumption_Sport();} 
+        }
+
         //Wypisanie tekstu z informacjami w czasie rzeczywistym
         printf("\rspeed=%6.2f km/h   throttle=%.2f   brake=%.2f   fuel=%.2f L   engine=%s   ",
                     Audi.get_CarSpeed() * 3.6 , Audi.get_CatThrottle(), Audi.get_CarBrake(),    //Wystepuje tutaj mnozenie przez 3.6 w celu zamiany jednostki m/s na km/h
                     Audi.get_Car_FuelTank().get_FuelTank_Level(),
-                    Audi.get_Engine().Engine_is_On() ? "ON" : "OFF");
+                    Audi.get_Engine().Engine_is_On() ? "ON" : "OFF"),
+                    cout << "Consumption Fuel Model: " <<setw(6) << Audi.get_Engine().Check_Consumption() << " ";
         fflush(stdout);
 
         this_thread::sleep_for(chrono::milliseconds(16));
