@@ -86,14 +86,15 @@ class Engine {
     enum class ConsumptionStatus { Eco, Normal, Sport, Off};
     private:
         FuelTank& FuelTank_Ref;
+        TripComputer& TripComputer_Ref;
         unique_ptr<EngineState> State;
         unique_ptr<ConsumptionModel> Consumption_Fuel_Model;
         ConsumptionStatus Consumption_Status;
 
     public:
         //Konstruktor
-        Engine( FuelTank& C_FuelTank_Ref, ConsumptionStatus C_Consumption_Beginning = ConsumptionStatus::Off)
-            : FuelTank_Ref(C_FuelTank_Ref), State(make_unique<Engine_off>()), Consumption_Fuel_Model(make_unique<ConsumptionModel_Normal>()), Consumption_Status(C_Consumption_Beginning) {}
+        Engine( FuelTank& C_FuelTank_Ref, TripComputer& C_TripComputer,ConsumptionStatus C_Consumption_Beginning = ConsumptionStatus::Off)
+            : FuelTank_Ref(C_FuelTank_Ref), TripComputer_Ref(C_TripComputer),State(make_unique<Engine_off>()), Consumption_Fuel_Model(make_unique<ConsumptionModel_Normal>()), Consumption_Status(C_Consumption_Beginning) {}
 
         //Getter
         bool Engine_is_On() const {
@@ -166,6 +167,7 @@ class Engine {
                 double Requirement_Fuel = Consumption_Fuel_Model->Fuel_Flow_Lps(CarThrottle, CarSpeed);
                 double New_Fuel_Level = FuelTank_Ref.get_FuelTank_Level() - Requirement_Fuel * DT;
 
+                //Tutaj dodam TripComputer i bedę korzystał z DT i New_Fuel_Level
                 FuelTank_Ref.set_FuelTank_Level(max(0.0, New_Fuel_Level)); //Nie pozwala na wartosci ponizej zera - wybiera wieksza wartosc
             }
             if (Engine_is_On() && (FuelTank_Ref.get_FuelTank_Level() <= 0)) set_Engine_Off(); //Pusty bank wylacza silnik
@@ -202,6 +204,7 @@ class Car {
         Engine Car_Engine;
         //Transmission Car_Transmission;
         Dashboard Car_Dashboard;
+        TripComputer Car_TripComputer;
 
         const double MAX_SPEED_MS = 50.0; //[M/S] -> 50 m/s * 3.6 = 180 km/h. Mnozenie przez 3.6 w celu uzyskania km/h
         const int MASS_KG = 1000;
@@ -235,7 +238,7 @@ class Car {
         Car() 
             : Car_FuelTank (), 
               Car_Brake (), 
-              Car_Engine (Car_FuelTank), 
+              Car_Engine (Car_FuelTank, Car_TripComputer), 
               /*Car_Transmission (),*/ 
               Car_Dashboard (Car_FuelTank, Car_Engine) {}
 

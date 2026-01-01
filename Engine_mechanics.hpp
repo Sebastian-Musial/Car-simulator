@@ -61,3 +61,74 @@ class Engine_off : public EngineState {     //Throttle ingonowany
             return false;
         };
 };
+
+/*==============================*/
+/*Model observer dla tripComputer na silniku */
+class TripComputer {
+    private:
+        double Momentary_Fuel_Consumption_100KM = 0.0;
+        double Average_Fuel_Consumption = 0.0;
+        double Distance = 0.0;
+        double Work_Time = 0.0;
+        double Consume_Fuel = 0.0;
+
+    public:
+        //Konstruktor domyslny
+        TripComputer() :
+            Momentary_Fuel_Consumption_100KM(),
+            Average_Fuel_Consumption(),
+            Distance(),
+            Work_Time(),
+            Consume_Fuel() {}
+
+        //Gettery
+        const double get_Average_Fuel_Consumption() const {
+            return Average_Fuel_Consumption;
+        }
+
+        const double get_Momentary_Fuel_Consumption_100KM() const {
+            return Momentary_Fuel_Consumption_100KM;
+        }
+
+        const double get_Distance() const {
+            return Distance;
+        }
+
+        const double get_Work_Time() const {
+            return Work_Time;
+        }
+
+        //Settery
+        void set_Average_Fuel_Consumption(double S_Average_Fuel_Consumption) {
+            Average_Fuel_Consumption = S_Average_Fuel_Consumption;
+        }
+
+        void set_Distance(double S_Distance) {
+            Distance = S_Distance;
+        }
+
+        void set_Work_Time(double S_Work_Time) {
+            Work_Time = S_Work_Time;
+        }
+
+        //Metody
+        void Count_Distance (double Car_Speed) {
+            Distance += Car_Speed * DT;
+        }
+
+        void Count_Fuel_Consumption(double DT_C_Fuel, double Car_Speed) {
+            Consume_Fuel += DT_C_Fuel;
+            double DT_Distance = Car_Speed * DT;
+            if (Distance > 0.0) Average_Fuel_Consumption = Consume_Fuel / Distance;  //Spalanie srednie
+            else Average_Fuel_Consumption = 0.0;
+            if ((DT_C_Fuel > 0.0) && (DT_Distance > 0.0)) //Zalozenie liczenia wymaga przeplywu paliwa. Predkosc samochodu moze byc utrzymywana przez pewien czas bez spalania samochodu.
+                Momentary_Fuel_Consumption_100KM = (DT_C_Fuel / DT_Distance) * 100;    //Spalanie na 100KM
+            else Momentary_Fuel_Consumption_100KM = 0.0; //Nie ma spalania - nie ma chwilowego spalania na 100km. Zalozenie: w takim przypadku ma pokazywac chwilowe na 0
+        }
+
+        void Update(double Car_Speed, double DT_C_Fuel) {
+            Count_Distance(Car_Speed);
+            Count_Fuel_Consumption(DT_C_Fuel, Car_Speed);
+        }
+};
+
