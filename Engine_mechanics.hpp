@@ -69,8 +69,9 @@ class TripComputer {
         double Momentary_Fuel_Consumption_100KM = 0.0;
         double Average_Fuel_Consumption = 0.0;
         double Distance = 0.0;
-        double Work_Time = 0.0;
+        double Work_Time = 0.0; //Liczy sekundy
         double Consume_Fuel = 0.0;
+        double DT_Work_Time = 0.0;  //Liczy kroki czasu/FPS
 
     public:
         //Konstruktor domyslny
@@ -79,7 +80,8 @@ class TripComputer {
             Average_Fuel_Consumption(),
             Distance(),
             Work_Time(),
-            Consume_Fuel() {}
+            Consume_Fuel(),
+            DT_Work_Time() {}
 
         //Gettery
         const double get_Average_Fuel_Consumption() const {
@@ -126,9 +128,18 @@ class TripComputer {
             else Momentary_Fuel_Consumption_100KM = 0.0; //Nie ma spalania - nie ma chwilowego spalania na 100km. Zalozenie: w takim przypadku ma pokazywac chwilowe na 0
         }
 
+        void Count_Work_Time() {
+            DT_Work_Time += DT;
+            if (DT_Work_Time > 1.0) {
+                Work_Time += 1.0;
+                DT_Work_Time -= 1.0;
+            }
+        }
+
         void Update(double Car_Speed, double DT_C_Fuel) {
             Count_Distance(Car_Speed);
             Count_Fuel_Consumption(DT_C_Fuel, Car_Speed);
+            Count_Work_Time();
         }
 };
 
