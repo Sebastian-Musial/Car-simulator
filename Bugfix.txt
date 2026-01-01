@@ -1,3 +1,21 @@
+Bugfix 5
+-Deklaracja globalnego DT w engine mechanics
+-Poprawa kolejności deklaracji w klasie CAR
+-Poprawa operatora logicznego w main dla Test_X
+-W klasie Car zamiana zwracania TripComputer przez wartośc (kopia) na referencje (orginał) TripComputer
+-Naprawiony problem migotania tekstu
+-Naprawa błędu z pozostającymi końcówkami tekstu
+-Dodanie większej czytelności w wyświetlanych informacjach
+-Korekta jednostek we wzorach liczących
+-Zmniejszona domyślna ilość paliwa w baku dla łatwiejszeka testu mechaniki braku paliwa
+-Korekta szybkości spalania paliwa
+
+Bugfix 4 (3) - W git błędnie podpisany jako Bugfix 3 ze zmianami dotyczącymi klasy FuelTank
+-Naprawa błędów w konstuktorze
+-Zabezpieczenie w setterze - nie pozwala na wartosc ponizej zera i powyzej pojemnosci, capacity
+-Zebezpieczenie w Refuel - nie pozwala na wartosc ponizej zera i powyzej pojemnosci, capacity
+-Zamknięcie w komentarzu nie uzywanej metody
+
 Bugfix 3
 -Naprawiono błąd, który występował, gdy wybieraliśmy opcję „Brak testu”, a samochód nie jechał po naciśnięciu klawisza
 

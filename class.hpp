@@ -1,19 +1,24 @@
 #include <iostream>
-#include <algorithm> //Wymagane dla std::clamp(value, min, max); + std::max(Value_A, Value_B);
+#include <algorithm> //Wymagane dla std::clamp(value, min, max); + std::max(Value_A, Value_B);#
+#include <memory> //Wymagana do uzytego wzorca state dla stanu silnika
+#include "Engine_mechanics.hpp"
 
 using namespace std;
+
+class Car;
 
 class FuelTank {
     private:
         double FuelTank_Level;
+        double FuelTank_Capacity;
 
     public:
-        //Konstruktor
-        FuelTank(double C_FuelTank_Level) 
-            : FuelTank_Level (C_FuelTank_Level) {}
+        //Konstruktor - ///Nie pozwala na wartosc baku ponizej zera oraz powyzej pojemnosci - Capacity. Mozliwe w uzyciu poniewaz wartosc C_FuelTank_Capacity jest incjalizowana przez usera lub przez wartosc domyslna
+        FuelTank(double C_FuelTank_Level = 0.02, double C_FuelTank_Capacity = 120.0) 
+            : FuelTank_Level (clamp(C_FuelTank_Level, 0.0, C_FuelTank_Capacity)), FuelTank_Capacity (C_FuelTank_Capacity) {}     
 
-        //Konstruktor domyslny
-        FuelTank() { FuelTank_Level = 5.0; }
+        //Konstruktor
+        //FuelTank() : FuelTank_Level(5.0), FuelTank_Capacity(120.0) {}
         
         //Getter
         double get_FuelTank_Level() const {
@@ -22,17 +27,21 @@ class FuelTank {
 
         //Setter
         void set_FuelTank_Level(double S_FuelTank_Level) {
-            FuelTank_Level =S_FuelTank_Level;
+            FuelTank_Level = clamp(S_FuelTank_Level, 0.0, FuelTank_Capacity);   //Nie pozwala na wartosc baku ponizej zera oraz powyzej pojemnosci - Capacity
         }
 
         //Metody
-        bool Consume_Fuel(double Amount) {
+        /*bool Consume_Fuel(double Amount) {
             if (this->FuelTank_Level >= Amount) {
                 this->FuelTank_Level -= Amount;
                 return true;
             } 
             else return false;
-        }
+        }*/
+
+        void Refuel(int Amount) {
+            FuelTank_Level = clamp(FuelTank_Level + Amount, 0.0, FuelTank_Capacity); //Nie pozwala na wartosc baku ponizej zera oraz powyzej pojemnosci - Capacity
+        } 
 };
 
 class Brake {
@@ -74,53 +83,94 @@ class Transmission {
 };
 
 class Engine {
+    enum class ConsumptionStatus { Eco, Normal, Sport, Off};
     private:
         FuelTank& FuelTank_Ref;
-        double Start_Engine_Consumption;
-        double Ride_Consumption;
-        bool Engine_on_off;
-
+        TripComputer& TripComputer_Ref;
+        unique_ptr<EngineState> State;
+        unique_ptr<ConsumptionModel> Consumption_Fuel_Model;
+        ConsumptionStatus Consumption_Status;
 
     public:
         //Konstruktor
-        Engine( FuelTank& C_FuelTank_Ref, double C_Start_Engine_Consumption = 0.2, double C_Ride_Consumption = 0.1, bool C_Engine_on_off = false)
-            : FuelTank_Ref(C_FuelTank_Ref), Start_Engine_Consumption(C_Start_Engine_Consumption), Ride_Consumption(C_Ride_Consumption), Engine_on_off(C_Engine_on_off) {}
+        Engine( FuelTank& C_FuelTank_Ref, TripComputer& C_TripComputer,ConsumptionStatus C_Consumption_Beginning = ConsumptionStatus::Off)
+            : FuelTank_Ref(C_FuelTank_Ref), TripComputer_Ref(C_TripComputer),State(make_unique<Engine_off>()), Consumption_Fuel_Model(make_unique<ConsumptionModel_Normal>()), Consumption_Status(C_Consumption_Beginning) {}
 
         //Getter
-        double get_Start_Consumption() const {
-            return this->Start_Engine_Consumption;
+        bool Engine_is_On() const {
+            return State->Check_Engine_On();
         }
-        double get_Ride_Consumption() const {
-            return this->Ride_Consumption;
-        }
-        bool get_Engine_on_off() const {
-            return this->Engine_on_off;
+        string Check_Consumption() {
+            switch (Consumption_Status) {
+            case ConsumptionStatus::Off:
+                return "Off";
+                break;
+            case ConsumptionStatus::Normal:
+                return "Normal";
+                break;
+            case ConsumptionStatus::Eco:
+                return "Eco";
+                break;
+            case ConsumptionStatus::Sport:
+                return "Sport";
+                break;
+            }
+            return "Error";
         }
 
         //Setter
-        void set_Start_Consumption(double S_Start_Consumption) {
-            Start_Engine_Consumption = S_Start_Consumption;
+        void set_Engine_On() {
+            State = make_unique<Engine_on>();
+            set_Consumption_Normal(); //Kazde uruchomienie silnika ma ustawiac spalanie na normal
+            Consumption_Status = ConsumptionStatus::Normal;
         }
-        void set_Ride_Consumption(double S_Ride_Consumption) {
-            Ride_Consumption = S_Ride_Consumption;
+        void set_Engine_Off() {
+            State = make_unique<Engine_off>();
+            Consumption_Status = ConsumptionStatus::Off;
         }
-        void set_Engine_on_off(bool S_Engine_on_off) {
-            Engine_on_off = S_Engine_on_off;
+        void set_Consumption_Normal() {
+            Consumption_Fuel_Model = make_unique<ConsumptionModel_Normal>();
+            Consumption_Status = ConsumptionStatus::Normal;
+        }
+        void set_Consumption_Eco() {
+            Consumption_Fuel_Model = make_unique<ConsumptionModel_Eco>();
+            Consumption_Status = ConsumptionStatus::Eco;
+        }
+        void set_Consumption_Sport() {
+            Consumption_Fuel_Model = make_unique<ConsumptionModel_Sport>();
+            Consumption_Status = ConsumptionStatus::Sport;
+        }
+        //Metody
+        /*void Check_Consumption() {
+            switch (Consumption_Status) {
+            case ConsumptionStatus::Off:
+                cout<<"Off"<<endl;
+                break;
+            case ConsumptionStatus::Normal:
+                cout<<"Normal"<<endl;
+                break;
+            case ConsumptionStatus::Eco:
+                cout<<"Eco"<<endl;
+                break;
+            case ConsumptionStatus::Sport:
+                cout<<"Sport"<<endl;
+                break;
+            }
+        }*/
+
+        double Real_Throttle(double Car_Throttle) {
+            return State->Real_Throttle(Car_Throttle);
         }
 
-        //Metody
-        void Start_Engine () {  //Chwilowo void - pozniej prawdopodobnie zmienie na bool
-            //Start silnika wykorzystuje paliwo z baku            
-            if (FuelTank_Ref.Consume_Fuel(Start_Engine_Consumption)) {
-                set_Engine_on_off(true);
-                cout<<"Silnik zostal uruchomiony"<<endl;
+        void Consume_Fuel(double CarThrottle, double CarSpeed, double DT) {
+            if (Engine_is_On()) {
+                double Requirement_Fuel = Consumption_Fuel_Model->Fuel_Flow_Lps(CarThrottle, CarSpeed);
+                double New_Fuel_Level = FuelTank_Ref.get_FuelTank_Level() - Requirement_Fuel * DT;
+
+                TripComputer_Ref.Update(CarSpeed, Requirement_Fuel * DT);
+                FuelTank_Ref.set_FuelTank_Level(max(0.0, New_Fuel_Level)); //Nie pozwala na wartosci ponizej zera - wybiera wieksza wartosc
             }
-            else cout<<"Nie udalo sie uruchomic silnika. Byc moze brakuje paliwa"<<endl;
-        }
-        bool Ride () {
-            //Jazda wykorzystuje paliwo
-            if (Engine_on_off == true && FuelTank_Ref.Consume_Fuel(Ride_Consumption) ) return true; //Najpierw sprawdzamy czy silnik jest uruchomiony, jezeli tak to sprawdzamy drugi warunek logiczny
-            else return false;
+            if (Engine_is_On() && (FuelTank_Ref.get_FuelTank_Level() <= 0)) set_Engine_Off(); //Pusty bank wylacza silnik
         }
 };
 
@@ -135,7 +185,7 @@ class Dashboard {
             : FuelTank_Ref(C_FuelTank_Ref), Engine_Ref(C_Engine_Ref) {}
 
         //Metody
-        void Car_Information() {
+        /*void Car_Information() {
             cout<<"<--------Informacje o aucie-------->"<<endl;
             //Silnik
             if(Engine_Ref.get_Engine_on_off()) cout<<"Silnik jest uruchomiony"<<endl;
@@ -144,16 +194,18 @@ class Dashboard {
             cout<<"W baku jest: "<<FuelTank_Ref.get_FuelTank_Level()<<"L paliwa"<<endl;
             //Predkosc
             /*Brakuje metody w Car*/
-        }
+        //}
 };
 
 class Car {
     private:
+        TripComputer Car_TripComputer;
         FuelTank Car_FuelTank;
         Brake Car_Brake;
         Engine Car_Engine;
         //Transmission Car_Transmission;
         Dashboard Car_Dashboard;
+
 
         const double MAX_SPEED_MS = 50.0; //[M/S] -> 50 m/s * 3.6 = 180 km/h. Mnozenie przez 3.6 w celu uzyskania km/h
         const int MASS_KG = 1000;
@@ -185,18 +237,25 @@ class Car {
         */
         //Konstruktor domyslny
         Car() 
-            : Car_FuelTank (), 
+            : Car_TripComputer(),
+              Car_FuelTank (), 
               Car_Brake (), 
-              Car_Engine (Car_FuelTank), 
+              Car_Engine (Car_FuelTank, Car_TripComputer), 
               /*Car_Transmission (),*/ 
               Car_Dashboard (Car_FuelTank, Car_Engine) {}
 
         //Gettery klas
-        Engine get_Engine() const {
-            return this->Car_Engine;
+        const Engine& get_Engine() const {
+            return Car_Engine;
         }
-        FuelTank get_Car_FuelTank() const {
-            return this->Car_FuelTank;
+        Engine& get_Engine() {  //Przeciazenie do modyfikacji przez getter
+            return Car_Engine;
+        }
+        const FuelTank& get_Car_FuelTank() const {
+            return Car_FuelTank;
+        }
+        FuelTank& get_Car_FuelTank() {   //Przeciazenie do modyfikacji przez getter
+            return Car_FuelTank;
         }      
         Brake get_Car_Brake() const {
             return this->Car_Brake;
@@ -206,6 +265,9 @@ class Car {
         }*/      
         Dashboard get_Car_Dashboard() const {
             return this->Car_Dashboard;
+        }
+        const TripComputer& get_Trip_Computer() const {
+            return Car_TripComputer;
         }
 
         //Gettery zmiennych
@@ -240,8 +302,11 @@ class Car {
        
         //Metody
         void Speed_Update (double DT, bool Click_Throttle, bool Click_Brake) {
-            CarThrottle = Rate_Limiter(CarThrottle, Click_Throttle ? 1.0:0.0, Slew ,DT);
+            //Click_Throttle = false;   TEST DLA NOWEJ MECHANIKI SPRAWDANIA STANU SILNIKA
+            //CarThrottle = Rate_Limiter(CarThrottle, Click_Throttle ? 1.0:0.0, Slew ,DT);
+            CarThrottle = Car_Engine.Real_Throttle(Rate_Limiter(CarThrottle, Click_Throttle ? 1.0:0.0, Slew ,DT)); //Gdy engine off - throttle igonorowany
             CarBrake = Rate_Limiter(CarBrake, Click_Brake ? 1.0:0.0, Slew ,DT);
+
 
             //Mechanika przyspieszenia:  Przyspieszenie = Throttle - Brake
             double Acceleration = 0.0;
@@ -261,5 +326,6 @@ class Car {
             if (CarSpeed >= MAX_SPEED) CarSpeed = MAX_SPEED;    //Ogranicznik maksymalnej predkosci */
 
             CarSpeed = clamp( (CarSpeed + Acceleration * DT), 0.0, MAX_SPEED_MS);  //Ogranicznik spelniajacy zalozenia: 0 <= V <= Vmax. [m/s]
+            Car_Engine.Consume_Fuel(get_CatThrottle(), get_CarSpeed(), DT); //Spalanie paliwa na koniec po okresleniu nowej predkosci
         }
 }; 
