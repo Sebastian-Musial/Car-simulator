@@ -167,7 +167,7 @@ class Engine {
                 double Requirement_Fuel = Consumption_Fuel_Model->Fuel_Flow_Lps(CarThrottle, CarSpeed);
                 double New_Fuel_Level = FuelTank_Ref.get_FuelTank_Level() - Requirement_Fuel * DT;
 
-                //Tutaj dodam TripComputer i bedę korzystał z DT i New_Fuel_Level
+                TripComputer_Ref.Update(CarSpeed, Requirement_Fuel * DT);
                 FuelTank_Ref.set_FuelTank_Level(max(0.0, New_Fuel_Level)); //Nie pozwala na wartosci ponizej zera - wybiera wieksza wartosc
             }
             if (Engine_is_On() && (FuelTank_Ref.get_FuelTank_Level() <= 0)) set_Engine_Off(); //Pusty bank wylacza silnik
