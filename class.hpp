@@ -14,7 +14,7 @@ class FuelTank {
 
     public:
         //Konstruktor - ///Nie pozwala na wartosc baku ponizej zera oraz powyzej pojemnosci - Capacity. Mozliwe w uzyciu poniewaz wartosc C_FuelTank_Capacity jest incjalizowana przez usera lub przez wartosc domyslna
-        FuelTank(double C_FuelTank_Level = 5.0, double C_FuelTank_Capacity = 120.0) 
+        FuelTank(double C_FuelTank_Level = 0.02, double C_FuelTank_Capacity = 120.0) 
             : FuelTank_Level (clamp(C_FuelTank_Level, 0.0, C_FuelTank_Capacity)), FuelTank_Capacity (C_FuelTank_Capacity) {}     
 
         //Konstruktor
@@ -199,12 +199,13 @@ class Dashboard {
 
 class Car {
     private:
+        TripComputer Car_TripComputer;
         FuelTank Car_FuelTank;
         Brake Car_Brake;
         Engine Car_Engine;
         //Transmission Car_Transmission;
         Dashboard Car_Dashboard;
-        TripComputer Car_TripComputer;
+
 
         const double MAX_SPEED_MS = 50.0; //[M/S] -> 50 m/s * 3.6 = 180 km/h. Mnozenie przez 3.6 w celu uzyskania km/h
         const int MASS_KG = 1000;
@@ -236,7 +237,8 @@ class Car {
         */
         //Konstruktor domyslny
         Car() 
-            : Car_FuelTank (), 
+            : Car_TripComputer(),
+              Car_FuelTank (), 
               Car_Brake (), 
               Car_Engine (Car_FuelTank, Car_TripComputer), 
               /*Car_Transmission (),*/ 
@@ -264,8 +266,8 @@ class Car {
         Dashboard get_Car_Dashboard() const {
             return this->Car_Dashboard;
         }
-        TripComputer get_Trip_Computer() const {
-            return this->Car_TripComputer;
+        const TripComputer& get_Trip_Computer() const {
+            return Car_TripComputer;
         }
 
         //Gettery zmiennych

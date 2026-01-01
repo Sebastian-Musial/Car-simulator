@@ -14,6 +14,17 @@ extern double TEST_STOP (Car & X, const double & DT);
 const double DT = 0.02; //Jest to liczba przykladowa i wymaga testowania
 //pętla update(dt) 
 
+#ifdef _WIN32   //Wlaczenie ANSI (Virtual Terminal) - rozwiazanie problemu migotania konsoli
+void EnableVTMode()
+{
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    DWORD dwMode = 0;
+    GetConsoleMode(hOut, &dwMode);
+    dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+    SetConsoleMode(hOut, dwMode);
+}
+#endif
+
 //Instrukcje preprocesora dla kompilacji dla windowsa oraz nie windowsa np. linux
 #ifdef _WIN32   //Windows
     //Stan bitu 15 sprawdza czy klawisz jest teraz wcisniety - sprawdza czy klawisz jest trzymany. Dla samego wcisnięcia sprawdzany jest bit 0 - (0x0001)
@@ -37,6 +48,11 @@ Test_X Test = Test_X::first_time;   //Nazwa zmiennej jest chwilowa poniewaz nie 
 
 int main ()
 {
+    #ifdef _WIN32
+        EnableVTMode();
+    #endif
+    cout << "\x1b[2J\x1b[H"; // wyczyść ekran + kursor do (0,0)
+
     Car Audi;
 
         cout << "Czy chcesz uruchomic test po jakiej odleglosci auto rozpedzon do 50 km/h sie zatrzyma?\n1 - Tak / 2 - Nie" << endl;
@@ -58,7 +74,7 @@ int main ()
 
         if(Test == Test_X::on) position = TEST_STOP(Audi, DT);
 
-        if ((Test == Test_X::on) & (Audi.get_CarSpeed() == 0.0))
+        if ((Test == Test_X::on) && (Audi.get_CarSpeed() == 0.0))
         {
         #ifdef _WIN32   //Czyszczenie konsoli - Windows
             system("cls");
@@ -110,22 +126,28 @@ int main ()
                     "Distance: ", Audi.get_Trip_Computer().get_Distance(),
                     "Engine Work time: ", Audi.get_Trip_Computer().get_Work_Time(),
                     "Consumption Fuel Model: ", %6s Audi.get_Engine().Check_Consumption());*/
-        #ifdef _WIN32
+        /*#ifdef _WIN32
         system("cls");
         #else           //Czyszczenei konsoli - Nie windows, wersja linux albo mac. W obecnej chwili program dziala tylko dla windows.
         system("clear");
-        #endif   
+        #endif */  
+        
+        //czyszczenie ekranu bez miogotania i bez pozostawiania blednych liter na koncu wyrazu
+        cout << "\x1b[" << 10 << "A";
+        for(int i=0;i<10;i++) cout << "\x1b[2K\n";
+        cout << "\x1b[" << 10 << "A";
 
+        cout << fixed << setprecision(2);
         cout << "===CAR INFORMATION===\n"
-            << "\nUP = throttle, SPACE = brake, Q = quit, E = Engine ON/OFF\n"
+            << "\nUP = throttle, SPACE = brake, Q = quit, E = Engine ON/OFF, R - Refuel 1/2/3 - Consumption model Normal/Eco/Sport\n"
             << "\nSpeed:" << Audi.get_CarSpeed() * 3.6 << " km/h " << "  Throttle: " << Audi.get_CatThrottle() << "  Brake= " << Audi.get_CarBrake()
-            << "\nEngine: " << (Audi.get_Engine().Engine_is_On() ? "ON" : "OFF")
-            << " Fuel: " << Audi.get_Car_FuelTank().get_FuelTank_Level() << "Consumption Fuel Model: " << Audi.get_Engine().Check_Consumption()
+            << " Engine: " << setw(4) <<(Audi.get_Engine().Engine_is_On() ? "ON" : "OFF")
+            << "\nFuel: " << Audi.get_Car_FuelTank().get_FuelTank_Level() << " Consumption Fuel Model: "<< setw(7) << Audi.get_Engine().Check_Consumption()
             << "\nEngine Work time: " << Audi.get_Trip_Computer().get_Work_Time()
             << "\nMomentary Fuel Consumption: " << Audi.get_Trip_Computer().get_Momentary_Fuel_Consumption_100KM()
             << "\nAverage Fuel Consumption: " << Audi.get_Trip_Computer().get_Average_Fuel_Consumption()
-            << "\nDistance: " << Audi.get_Trip_Computer().get_Distance()
-            << flush;
+            << "\nDistance: " << Audi.get_Trip_Computer().get_Distance();
+            //<< flush;
 
         this_thread::sleep_for(chrono::milliseconds(16));
     }

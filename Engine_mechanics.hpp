@@ -1,5 +1,8 @@
 #include <memory> //Wymagana do uzytego wzorca state dla stanu silnika
 
+#pragma once
+extern const double DT;
+
 using namespace std;
 
 /*==============================*/
@@ -13,21 +16,21 @@ class ConsumptionModel {
 class ConsumptionModel_Eco : public ConsumptionModel {
     public:
         double Fuel_Flow_Lps (double CarThrottle, double CarSpeed) override {   //Nadpisywanie wirtualnej metody z klasy bazowej [Fuel_Flow_Lps]
-            return 0.7 * CarThrottle * CarSpeed;
+            return 0.00013 * CarThrottle * CarSpeed;    //13 L
         }
 };
 
 class ConsumptionModel_Normal : public ConsumptionModel {
     public:
         double Fuel_Flow_Lps (double CarThrottle, double CarSpeed) override {   //Nadpisywanie wirtualnej metody z klasy bazowej [Fuel_Flow_Lps]
-            return 1 * CarThrottle * CarSpeed;
+            return 0.00020 * CarThrottle * CarSpeed;    //20 L
         }
 };
 
 class ConsumptionModel_Sport : public ConsumptionModel {
     public:
         double Fuel_Flow_Lps (double CarThrottle, double CarSpeed) override {   //Nadpisywanie wirtualnej metody z klasy bazowej [Fuel_Flow_Lps]
-            return 1.5 * CarThrottle * CarSpeed;
+            return 0.00030 * CarThrottle * CarSpeed;    //30 L
         }
 };
 
@@ -124,7 +127,7 @@ class TripComputer {
             if (Distance > 0.0) Average_Fuel_Consumption = Consume_Fuel / Distance;  //Spalanie srednie
             else Average_Fuel_Consumption = 0.0;
             if ((DT_C_Fuel > 0.0) && (DT_Distance > 0.0)) //Zalozenie liczenia wymaga przeplywu paliwa. Predkosc samochodu moze byc utrzymywana przez pewien czas bez spalania samochodu.
-                Momentary_Fuel_Consumption_100KM = (DT_C_Fuel / DT_Distance) * 100;    //Spalanie na 100KM
+                Momentary_Fuel_Consumption_100KM = (DT_C_Fuel / DT_Distance) * 100000;    //Spalanie na 100KM
             else Momentary_Fuel_Consumption_100KM = 0.0; //Nie ma spalania - nie ma chwilowego spalania na 100km. Zalozenie: w takim przypadku ma pokazywac chwilowe na 0
         }
 
