@@ -78,7 +78,6 @@ int main ()
         #else
             system("clear");    //Czyszczenei konsoli - Nie windows, wersja linux albo mac. W obecnej chwili program dziala tylko dla windows.
         #endif
-            cout<<"UP = throttle, SPACE = brake, Q = quit, E = Engine ON/OFF"<<endl;
         } 
 
         bool Thr = Key_Throttle();
@@ -102,12 +101,31 @@ int main ()
         }
 
         //Wypisanie tekstu z informacjami w czasie rzeczywistym
-        printf("\rspeed=%6.2f km/h   throttle=%.2f   brake=%.2f   fuel=%.2f L   engine=%s   ",
+        /*printf("\rspeed=%6.2f km/h   throttle=%.2f   brake=%.2f   fuel=%.2f L   engine=%s   ",
                     Audi.get_CarSpeed() * 3.6 , Audi.get_CatThrottle(), Audi.get_CarBrake(),    //Wystepuje tutaj mnozenie przez 3.6 w celu zamiany jednostki m/s na km/h
                     Audi.get_Car_FuelTank().get_FuelTank_Level(),
-                    Audi.get_Engine().Engine_is_On() ? "ON" : "OFF"),
-                    cout << "Consumption Fuel Model: " <<setw(6) << Audi.get_Engine().Check_Consumption() << " ";
-        fflush(stdout);
+                    Audi.get_Engine().Engine_is_On() ? "ON" : "OFF",
+                    "Momentary Fuel Consumption: ", Audi.get_Trip_Computer().get_Momentary_Fuel_Consumption_100KM(),
+                    "Average Fuel Consumption: ", Audi.get_Trip_Computer().get_Average_Fuel_Consumption(),
+                    "Distance: ", Audi.get_Trip_Computer().get_Distance(),
+                    "Engine Work time: ", Audi.get_Trip_Computer().get_Work_Time(),
+                    "Consumption Fuel Model: ", %6s Audi.get_Engine().Check_Consumption());*/
+        #ifdef _WIN32
+        system("cls");
+        #else           //Czyszczenei konsoli - Nie windows, wersja linux albo mac. W obecnej chwili program dziala tylko dla windows.
+        system("clear");
+        #endif   
+
+        cout << "===CAR INFORMATION===\n"
+            << "\nUP = throttle, SPACE = brake, Q = quit, E = Engine ON/OFF\n"
+            << "\nSpeed:" << Audi.get_CarSpeed() * 3.6 << " km/h " << "  Throttle: " << Audi.get_CatThrottle() << "  Brake= " << Audi.get_CarBrake()
+            << "\nEngine: " << (Audi.get_Engine().Engine_is_On() ? "ON" : "OFF")
+            << " Fuel: " << Audi.get_Car_FuelTank().get_FuelTank_Level() << "Consumption Fuel Model: " << Audi.get_Engine().Check_Consumption()
+            << "\nEngine Work time: " << Audi.get_Trip_Computer().get_Work_Time()
+            << "\nMomentary Fuel Consumption: " << Audi.get_Trip_Computer().get_Momentary_Fuel_Consumption_100KM()
+            << "\nAverage Fuel Consumption: " << Audi.get_Trip_Computer().get_Average_Fuel_Consumption()
+            << "\nDistance: " << Audi.get_Trip_Computer().get_Distance()
+            << flush;
 
         this_thread::sleep_for(chrono::milliseconds(16));
     }

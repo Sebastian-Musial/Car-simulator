@@ -264,6 +264,9 @@ class Car {
         Dashboard get_Car_Dashboard() const {
             return this->Car_Dashboard;
         }
+        TripComputer get_Trip_Computer() const {
+            return this->Car_TripComputer;
+        }
 
         //Gettery zmiennych
         double get_CarSpeed() const {   //Zwracana jednostka to [m/s], w celu uzyskania [km/h] wymagane mnozenie przez 3.6
