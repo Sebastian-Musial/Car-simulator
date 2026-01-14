@@ -93,7 +93,9 @@ class Transmission {
         E_ShiftPolicy Curent_ShiftPolicy = E_ShiftPolicy::Manual;
 
     public:
-        //Brakuje konstruktora ale najpierw wymagane bedzie stworzenie klas dla manual i automat ze wzorcem strategy
+        Transmission( int C_Current_Gear = 1, double C_RPM = 0)
+            : Current_Gear(C_Current_Gear), RPM(C_RPM), Curent_ShiftPolicy(E_ShiftPolicy::Manual), Shift_Transmission(make_unique<ManualPolicy>()) {}
+
         //Get
         int get_Current_Gear() const {
             return this -> Current_Gear;
@@ -133,7 +135,7 @@ class Transmission {
 
         string Check_ShiftPolicy() {
             if (Curent_ShiftPolicy == E_ShiftPolicy::Manual) return "Manual";
-            else if (Curent_ShiftPolicy == E_ShiftPolicy::Auto) return "Auto";
+            if (Curent_ShiftPolicy == E_ShiftPolicy::Auto) return "Auto";
         }
 
         double Total_Ratio() const {  //Całkowite przełożenie
