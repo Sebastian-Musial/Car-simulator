@@ -3,6 +3,7 @@
 #include <memory> //Wymagana do uzytego wzorca state dla stanu silnika
 #include <vector>
 #include "Engine_mechanics.hpp"
+#include "ShiftPolicy_Transmission.hpp"
 
 using namespace std;
 
@@ -87,6 +88,7 @@ class Transmission {
         int Current_Gear;    
         double RPM;  //RPM ~ wheel_speed * gear_ratio
         static constexpr double Pi = 3.14159265358979323846;
+        unique_ptr<ShiftPolicy> Shift_Transmission;
 
     public:
         //Brakuje konstruktora ale najpierw wymagane bedzie stworzenie klas dla manual i automat ze wzorcem strategy
