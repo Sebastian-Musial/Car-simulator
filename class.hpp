@@ -81,6 +81,7 @@ class Brake {
 };
 
 class Transmission {
+    enum class E_ShiftPolicy {Manual, Auto};
     private:
         vector<double> Gears_Ratio = {4.2, 3.6, 2.9, 2.1, 1.7 }; //Biegi od 1 do 5 na potrzeby zadania 
         const double Final_drive = 3.1; //Stały mnożnik dla każdego biegu. Potrzebny do total ration i wyliczania RPM
@@ -89,6 +90,7 @@ class Transmission {
         double RPM;  //RPM ~ wheel_speed * gear_ratio
         static constexpr double Pi = 3.14159265358979323846;
         unique_ptr<ShiftPolicy> Shift_Transmission;
+        E_ShiftPolicy Curent_ShiftPolicy = E_ShiftPolicy::Manual;
 
     public:
         //Brakuje konstruktora ale najpierw wymagane bedzie stworzenie klas dla manual i automat ze wzorcem strategy
@@ -105,6 +107,17 @@ class Transmission {
             return Gears_Ratio.size();
         }
 
+        //Set
+        void set_ShiftPolicy_Manual() {
+            Curent_ShiftPolicy = E_ShiftPolicy::Manual;
+            Shift_Transmission = make_unique<ManualPolicy>();
+        }
+
+        void set_ShiftPolicy_Auto() {
+            Curent_ShiftPolicy = E_ShiftPolicy::Auto;
+            Shift_Transmission = make_unique<AutoPolicy>();
+        }
+
         //Metody
         void Gear_up() {
             if (Current_Gear < Gears_Ratio.size()) Current_Gear++;
@@ -112,6 +125,11 @@ class Transmission {
 
         void Gear_down() {
             if (Current_Gear > 1) Current_Gear--;
+        }
+
+        string Check_ShiftPolicy() {
+            if (Curent_ShiftPolicy == E_ShiftPolicy::Manual) return "Manual";
+            else if (Curent_ShiftPolicy == E_ShiftPolicy::Auto) return "Auto";
         }
 
         double Total_Ratio() const {  //Całkowite przełożenie
