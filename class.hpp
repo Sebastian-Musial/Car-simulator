@@ -232,6 +232,18 @@ class Engine {
             return State->Real_Throttle(Car_Throttle);
         }
 
+        double Engine_Moment(double RPM, double Car_Throttle) {
+            const double IDLE = 900.0; //Min obrotów dla pracy silnika
+            const double REDLINE = 7000.0; //Max obrotów dla pracy silnika
+            const double Max_Torque= 280.0; //Maksymalny moment obrotowy silnika
+
+            RPM = clamp(RPM, IDLE, REDLINE);
+
+            double RPMFactor = 1.0 - (RPM - IDLE) / (REDLINE - IDLE); //Dla IDLE 1.0 dla REDLINE 0.0
+
+            return Max_Torque * RPMFactor * Car_Throttle;
+        }
+
         void Consume_Fuel(double CarThrottle, double CarSpeed, double DT) {
             if (Engine_is_On()) {
                 double Requirement_Fuel = Consumption_Fuel_Model->Fuel_Flow_Lps(CarThrottle, CarSpeed);
