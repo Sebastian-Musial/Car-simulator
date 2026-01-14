@@ -99,6 +99,10 @@ class Transmission {
             return this -> RPM;
         }
 
+        int get_Max_gear() const {
+            return Gears_Ratio.size();
+        }
+
         //Metody
         void Gear_up() {
             if (Current_Gear < Gears_Ratio.size()) Current_Gear++;
