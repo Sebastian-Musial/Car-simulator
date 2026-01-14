@@ -107,6 +107,10 @@ class Transmission {
             return Gears_Ratio.size();
         }
 
+        double get_Wheel_Radius() const {
+            return this -> R_Wheel;
+        }
+
         //Set
         void set_ShiftPolicy_Manual() {
             Curent_ShiftPolicy = E_ShiftPolicy::Manual;
@@ -285,7 +289,7 @@ class Car {
         FuelTank Car_FuelTank;
         Brake Car_Brake;
         Engine Car_Engine;
-        //Transmission Car_Transmission;
+        Transmission Car_Transmission;
         Dashboard Car_Dashboard;
 
 
@@ -323,7 +327,7 @@ class Car {
               Car_FuelTank (), 
               Car_Brake (), 
               Car_Engine (Car_FuelTank, Car_TripComputer), 
-              /*Car_Transmission (),*/ 
+              Car_Transmission (),
               Car_Dashboard (Car_FuelTank, Car_Engine) {}
 
         //Gettery klas
@@ -388,6 +392,10 @@ class Car {
             //CarThrottle = Rate_Limiter(CarThrottle, Click_Throttle ? 1.0:0.0, Slew ,DT);
             CarThrottle = Car_Engine.Real_Throttle(Rate_Limiter(CarThrottle, Click_Throttle ? 1.0:0.0, Slew ,DT)); //Gdy engine off - throttle igonorowany
             CarBrake = Rate_Limiter(CarBrake, Click_Brake ? 1.0:0.0, Slew ,DT);
+            
+            //Dla nowej mechaniki ze skrzynią biegów dokonujemy dodatkowych obliczeń
+            Car_Transmission.Count_RPM(*this); //Liczy RPM i wewnątrz obektu Transmission wstawia mu wartość
+            double Actual_Engine_Moment= Car_Engine.Engine_Moment(Car_Transmission.get_RPM(), CarThrottle);
 
 
             //Mechanika przyspieszenia:  Przyspieszenie = Throttle - Brake
@@ -398,7 +406,9 @@ class Car {
             double F_Drag = c_drag * (CarSpeed * CarSpeed); //[N] 
             double F_Roll = c_roll;    //[N]
 
-            F_Eng = CarThrottle * F_Eng_MAX;  //Tworzymy moc napedu
+            //F_Eng = CarThrottle * F_Eng_MAX;  //Tworzymy moc napedu
+            double wheel_Torque = Actual_Engine_Moment * Car_Transmission.Total_Ratio();    //Zamiana momentu sinlinka na siłę napędową. wheel_Torque - moment obrotowy kola
+            F_Eng = wheel_Torque / Car_Transmission.get_Wheel_Radius();  //Tworzymy moc napedu - nowa mechanika na podstawie obrotów i skrzynki biegów. Wartość 0.3 jako stała wartość promienia koła 
             F_Brake = CarBrake * F_Brake_MAX;   //Tworzymy moc hamulca
             
             Acceleration = ((F_Eng - F_Brake - F_Drag - F_Roll) / MASS_KG); //[m/s^2]
