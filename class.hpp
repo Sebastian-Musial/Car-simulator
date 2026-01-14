@@ -1,6 +1,7 @@
 #include <iostream>
 #include <algorithm> //Wymagane dla std::clamp(value, min, max); + std::max(Value_A, Value_B);#
 #include <memory> //Wymagana do uzytego wzorca state dla stanu silnika
+#include <vector>
 #include "Engine_mechanics.hpp"
 
 using namespace std;
@@ -79,7 +80,52 @@ class Brake {
 };
 
 class Transmission {
+    private:
+        vector<double> Gears_Ratio = {4.2, 3.6, 2.9, 2.1, 1.7 }; //Biegi od 1 do 5 na potrzeby zadania 
+        const double Final_drive = 3.1; //Stały mnożnik dla każdego biegu. Potrzebny do total ration i wyliczania RPM
+        const double R_Wheel = 0.3; //[M] - Promień koła, dla liczenia RPM
+        int Current_Gear;    
+        double RPM;  //RPM ~ wheel_speed * gear_ratio
+        static constexpr double Pi = 3.14159265358979323846;
 
+    public:
+        //Brakuje konstruktora ale najpierw wymagane bedzie stworzenie klas dla manual i automat ze wzorcem strategy
+        //Get
+        int get_Current_Gear() const {
+            return this -> Current_Gear;
+        }
+        
+        double get_RPM() const {
+            return this -> RPM;
+        }
+
+        //Metody
+        void Gear_up() {
+            if (Current_Gear < Gears_Ratio.size()) Current_Gear++;
+        }
+
+        void Gear_down() {
+            if (Current_Gear > 1) Current_Gear--;
+        }
+
+        double Total_Ratio() const {  //Całkowite przełożenie
+            int Max_Index = static_cast<int>(Gears_Ratio.size()) - 1;
+            int Gear_Index = clamp(Current_Gear - 1, 0, Max_Index); 
+            return Gears_Ratio[Gear_Index] * Final_drive;
+        }
+
+        void Count_RPM(const Car& T_Car) {
+            RPM = ( (T_Car.get_CarSpeed() / R_Wheel) * Total_Ratio() ) * 60.0 / (2.0 * Pi);
+            /*
+            RPM - ilość obrotów w ciągu minuty
+            RPM = ( wheel_speed [V / R] * total_ratio [gear * final drive] ) * 60 / (2 * Pi)]
+            [rad/x] * [ile obrótów zrobi silnik w momencie gdy koło robi 1 obrót];
+
+            [rad/s]
+            V - prędkość
+            R - Promień koła <-- na potrzeby zadania będzie to stała wartość
+            */
+        }
 };
 
 class Engine {
