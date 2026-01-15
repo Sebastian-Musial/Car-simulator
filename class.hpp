@@ -1,3 +1,5 @@
+#pragma once
+
 #include <iostream>
 #include <algorithm> //Wymagane dla std::clamp(value, min, max); + std::max(Value_A, Value_B);#
 #include <memory> //Wymagana do uzytego wzorca state dla stanu silnika

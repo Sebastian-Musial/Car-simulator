@@ -153,20 +153,24 @@ int main ()
         #endif */  
         
         //czyszczenie ekranu bez miogotania i bez pozostawiania blednych liter na koncu wyrazu
-        cout << "\x1b[" << 10 << "A";
-        for(int i=0;i<10;i++) cout << "\x1b[2K\n";
-        cout << "\x1b[" << 10 << "A";
+        cout << "\x1b[" << 14 << "A";
+        for(int i=0;i<13;i++) cout << "\x1b[2K\n";
+        cout << "\x1b[" << 14 << "A";
 
         cout << fixed << setprecision(2);
         cout << "===CAR INFORMATION===\n"
             << "\nUP = throttle, SPACE = brake, Q = quit, E = Engine ON/OFF, R - Refuel 1/2/3 - Consumption model Normal/Eco/Sport\n"
+            << "\nA - GearUp, Z - GearDown, M - ShiftPolicy[Manual/Auto]\n"
             << "\nSpeed:" << Audi.get_CarSpeed() * 3.6 << " km/h " << "  Throttle: " << Audi.get_CatThrottle() << "  Brake= " << Audi.get_CarBrake()
             << " Engine: " << setw(4) <<(Audi.get_Engine().Engine_is_On() ? "ON" : "OFF")
             << "\nFuel: " << Audi.get_Car_FuelTank().get_FuelTank_Level() << " Consumption Fuel Model: "<< setw(7) << Audi.get_Engine().Check_Consumption()
             << "\nEngine Work time: " << Audi.get_Trip_Computer().get_Work_Time()
             << "\nMomentary Fuel Consumption: " << Audi.get_Trip_Computer().get_Momentary_Fuel_Consumption_100KM()
             << "\nAverage Fuel Consumption: " << Audi.get_Trip_Computer().get_Average_Fuel_Consumption()
-            << "\nDistance: " << Audi.get_Trip_Computer().get_Distance();
+            << "\nDistance: " << Audi.get_Trip_Computer().get_Distance()
+            << "\nCurrent gear: " << Audi.get_Car_Transmission().get_Current_Gear()
+            << "\nRPM: " << Audi.get_Car_Transmission().get_RPM()
+            << "\nShiftPolicy transmission: " << setw(7) << Audi.get_Car_Transmission().Check_ShiftPolicy();
             //<< flush;
 
         this_thread::sleep_for(chrono::milliseconds(16));
