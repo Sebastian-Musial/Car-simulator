@@ -1,7 +1,12 @@
+#pragma once
+
 #include <iostream>
 #include <algorithm> //Wymagane dla std::clamp(value, min, max); + std::max(Value_A, Value_B);#
 #include <memory> //Wymagana do uzytego wzorca state dla stanu silnika
+#include <vector>
+#include <string>
 #include "Engine_mechanics.hpp"
+#include "ShiftPolicy_Transmission.hpp"
 
 using namespace std;
 
@@ -79,7 +84,81 @@ class Brake {
 };
 
 class Transmission {
+    enum class E_ShiftPolicy {Manual, Auto};
+    private:
+        vector<double> Gears_Ratio = {4.2, 3.6, 2.9, 2.1, 1.7 }; //Biegi od 1 do 5 na potrzeby zadania 
+        const double Final_drive = 3.1; //Stały mnożnik dla każdego biegu. Potrzebny do total ration i wyliczania RPM
+        const double R_Wheel = 0.3; //[M] - Promień koła, dla liczenia RPM
+        int Current_Gear;    
+        double RPM;  //RPM ~ wheel_speed * gear_ratio
+        static constexpr double Pi = 3.14159265358979323846;
+        unique_ptr<ShiftPolicy> Shift_Transmission;
+        E_ShiftPolicy Curent_ShiftPolicy = E_ShiftPolicy::Manual;
 
+    public:
+        Transmission( int C_Current_Gear = 1, double C_RPM = 0)
+            : Current_Gear(C_Current_Gear), RPM(C_RPM), Curent_ShiftPolicy(E_ShiftPolicy::Manual), Shift_Transmission(make_unique<ManualPolicy>()) {}
+
+        //Get
+        int get_Current_Gear() const {
+            return this -> Current_Gear;
+        }
+        
+        double get_RPM() const {
+            return this -> RPM;
+        }
+
+        int get_Max_gear() const {
+            return Gears_Ratio.size();
+        }
+
+        double get_Wheel_Radius() const {
+            return this -> R_Wheel;
+        }
+
+        //Set
+        void set_ShiftPolicy_Manual() {
+            Curent_ShiftPolicy = E_ShiftPolicy::Manual;
+            Shift_Transmission = make_unique<ManualPolicy>();
+        }
+
+        void set_ShiftPolicy_Auto() {
+            Curent_ShiftPolicy = E_ShiftPolicy::Auto;
+            Shift_Transmission = make_unique<AutoPolicy>();
+        }
+
+        //Metody
+        bool isAuto() const { return Curent_ShiftPolicy == E_ShiftPolicy::Auto; }
+
+        void change_ShiftPolicy() {
+            if (Curent_ShiftPolicy == E_ShiftPolicy::Manual) set_ShiftPolicy_Auto();
+            else if (Curent_ShiftPolicy == E_ShiftPolicy::Auto) set_ShiftPolicy_Manual();
+        }
+        void Gear_up() {
+            if (Current_Gear < Gears_Ratio.size()) Current_Gear++;
+        }
+
+        void Gear_down() {
+            if (Current_Gear > 1) Current_Gear--;
+        }
+
+        string Check_ShiftPolicy() {
+            if (Curent_ShiftPolicy == E_ShiftPolicy::Manual) return "Manual";
+            if (Curent_ShiftPolicy == E_ShiftPolicy::Auto) return "Auto";
+            return "Unknown";
+        }
+
+        double Total_Ratio() const {  //Całkowite przełożenie
+            int Max_Index = static_cast<int>(Gears_Ratio.size()) - 1;
+            int Gear_Index = clamp(Current_Gear - 1, 0, Max_Index); 
+            return Gears_Ratio[Gear_Index] * Final_drive;
+        }
+
+        void Count_RPM(const Car& T_Car); //Deklaracja tutaj a na dole pliku będzie implementacja metody
+
+        void Update_Shift(G_Shift gs) {
+            if (Shift_Transmission) Shift_Transmission->Update_Gear(*this, gs);
+        }
 };
 
 class Engine {
@@ -162,6 +241,18 @@ class Engine {
             return State->Real_Throttle(Car_Throttle);
         }
 
+        double Engine_Moment(double RPM, double Car_Throttle) {
+            const double IDLE = 900.0; //Min obrotów dla pracy silnika
+            const double REDLINE = 7000.0; //Max obrotów dla pracy silnika
+            const double Max_Torque= 280.0; //Maksymalny moment obrotowy silnika
+
+            RPM = clamp(RPM, IDLE, REDLINE);
+
+            double RPMFactor = 1.0 - (RPM - IDLE) / (REDLINE - IDLE); //Dla IDLE 1.0 dla REDLINE 0.0
+
+            return Max_Torque * RPMFactor * Car_Throttle;
+        }
+
         void Consume_Fuel(double CarThrottle, double CarSpeed, double DT) {
             if (Engine_is_On()) {
                 double Requirement_Fuel = Consumption_Fuel_Model->Fuel_Flow_Lps(CarThrottle, CarSpeed);
@@ -203,7 +294,7 @@ class Car {
         FuelTank Car_FuelTank;
         Brake Car_Brake;
         Engine Car_Engine;
-        //Transmission Car_Transmission;
+        Transmission Car_Transmission;
         Dashboard Car_Dashboard;
 
 
@@ -241,7 +332,7 @@ class Car {
               Car_FuelTank (), 
               Car_Brake (), 
               Car_Engine (Car_FuelTank, Car_TripComputer), 
-              /*Car_Transmission (),*/ 
+              Car_Transmission (),
               Car_Dashboard (Car_FuelTank, Car_Engine) {}
 
         //Gettery klas
@@ -260,9 +351,12 @@ class Car {
         Brake get_Car_Brake() const {
             return this->Car_Brake;
         }      
-        /*Transmission get_Car_Transmission() const {
-            return this->get_Car_Transmission;
-        }*/      
+        const Transmission& get_Car_Transmission() const {
+            return Car_Transmission;
+        }    
+        Transmission& get_Car_Transmission() {
+            return Car_Transmission;
+        }    
         Dashboard get_Car_Dashboard() const {
             return this->Car_Dashboard;
         }
@@ -306,6 +400,11 @@ class Car {
             //CarThrottle = Rate_Limiter(CarThrottle, Click_Throttle ? 1.0:0.0, Slew ,DT);
             CarThrottle = Car_Engine.Real_Throttle(Rate_Limiter(CarThrottle, Click_Throttle ? 1.0:0.0, Slew ,DT)); //Gdy engine off - throttle igonorowany
             CarBrake = Rate_Limiter(CarBrake, Click_Brake ? 1.0:0.0, Slew ,DT);
+            
+            //Dla nowej mechaniki ze skrzynią biegów dokonujemy dodatkowych obliczeń
+            Car_Transmission.Count_RPM(*this); //Liczy RPM i wewnątrz obektu Transmission wstawia mu wartość
+            if (Car_Transmission.isAuto()) Car_Transmission.Update_Shift(G_Shift::Up); //Ignorowanie G_Shift bo automat
+            double Actual_Engine_Moment= Car_Engine.Engine_Moment(Car_Transmission.get_RPM(), CarThrottle);
 
 
             //Mechanika przyspieszenia:  Przyspieszenie = Throttle - Brake
@@ -316,7 +415,9 @@ class Car {
             double F_Drag = c_drag * (CarSpeed * CarSpeed); //[N] 
             double F_Roll = c_roll;    //[N]
 
-            F_Eng = CarThrottle * F_Eng_MAX;  //Tworzymy moc napedu
+            //F_Eng = CarThrottle * F_Eng_MAX;  //Tworzymy moc napedu
+            double wheel_Torque = Actual_Engine_Moment * Car_Transmission.Total_Ratio();    //Zamiana momentu sinlinka na siłę napędową. wheel_Torque - moment obrotowy kola
+            F_Eng = wheel_Torque / Car_Transmission.get_Wheel_Radius();  //Tworzymy moc napedu - nowa mechanika na podstawie obrotów i skrzynki biegów. Wartość 0.3 jako stała wartość promienia koła 
             F_Brake = CarBrake * F_Brake_MAX;   //Tworzymy moc hamulca
             
             Acceleration = ((F_Eng - F_Brake - F_Drag - F_Roll) / MASS_KG); //[m/s^2]
@@ -329,3 +430,19 @@ class Car {
             Car_Engine.Consume_Fuel(get_CatThrottle(), get_CarSpeed(), DT); //Spalanie paliwa na koniec po okresleniu nowej predkosci
         }
 }; 
+
+
+
+
+inline void Transmission::Count_RPM(const Car& T_Car) {
+    RPM = ( (T_Car.get_CarSpeed() / R_Wheel) * Total_Ratio() ) * 60.0 / (2.0 * Pi);
+    }
+            /*
+            RPM - ilość obrotów w ciągu minuty
+            RPM = ( wheel_speed [V / R] * total_ratio [gear * final drive] ) * 60 / (2 * Pi)]
+            [rad/x] * [ile obrótów zrobi silnik w momencie gdy koło robi 1 obrót];
+
+            [rad/s]
+            V - prędkość
+            R - Promień koła <-- na potrzeby zadania będzie to stała wartość
+            */

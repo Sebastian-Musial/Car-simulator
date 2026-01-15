@@ -38,6 +38,10 @@ void EnableVTMode()
     bool Key_Consume_Eco()      { return (GetAsyncKeyState('2')      & 0x0001) != 0; }  //Test czy klawisz R jest wcisniety dla Engine
     bool Key_Consume_Sport()    { return (GetAsyncKeyState('3')      & 0x0001) != 0; }  //Test czy klawisz R jest wcisniety dla Engine
 
+    bool Key_Gear_Up()   { return (GetAsyncKeyState('A')      & 0x0001) != 0; }  //Test czy klawisz A jest wcisniety dla zwiększenia biegu 
+    bool Key_Gear_Down()   { return (GetAsyncKeyState('Z')      & 0x0001) != 0; }  //Test czy klawisz Z jest wcisniety dla zmniejszenia biegu
+    bool Key_ShiftPolicy_Transmission()   { return (GetAsyncKeyState('M')      & 0x0001) != 0; }  //Test czy klawisz M jest wcisniety dla zmiany trbu manual/auto 
+
 //#else   //Tutaj powinna byc instrukcja dla linux
 #endif
 
@@ -116,6 +120,22 @@ int main ()
             else if (Key_Consume_Sport())    {Audi.get_Engine().set_Consumption_Sport();} 
         }
 
+        //Obsluga skrzyni biegu
+
+        if (!Audi.get_Car_Transmission().isAuto()) {
+            if (Key_Gear_Up()) {
+                Audi.get_Car_Transmission().Update_Shift(G_Shift::Up);
+            }
+            if (Key_Gear_Down()) {
+                Audi.get_Car_Transmission().Update_Shift(G_Shift::Down);
+            }
+        }
+
+        
+        if (Key_ShiftPolicy_Transmission()) {
+            Audi.get_Car_Transmission().change_ShiftPolicy();
+        }
+
         //Wypisanie tekstu z informacjami w czasie rzeczywistym
         /*printf("\rspeed=%6.2f km/h   throttle=%.2f   brake=%.2f   fuel=%.2f L   engine=%s   ",
                     Audi.get_CarSpeed() * 3.6 , Audi.get_CatThrottle(), Audi.get_CarBrake(),    //Wystepuje tutaj mnozenie przez 3.6 w celu zamiany jednostki m/s na km/h
@@ -133,20 +153,24 @@ int main ()
         #endif */  
         
         //czyszczenie ekranu bez miogotania i bez pozostawiania blednych liter na koncu wyrazu
-        cout << "\x1b[" << 10 << "A";
-        for(int i=0;i<10;i++) cout << "\x1b[2K\n";
-        cout << "\x1b[" << 10 << "A";
+        cout << "\x1b[" << 14 << "A";
+        for(int i=0;i<13;i++) cout << "\x1b[2K\n";
+        cout << "\x1b[" << 14 << "A";
 
         cout << fixed << setprecision(2);
         cout << "===CAR INFORMATION===\n"
             << "\nUP = throttle, SPACE = brake, Q = quit, E = Engine ON/OFF, R - Refuel 1/2/3 - Consumption model Normal/Eco/Sport\n"
+            << "\nA - GearUp, Z - GearDown, M - ShiftPolicy[Manual/Auto]\n"
             << "\nSpeed:" << Audi.get_CarSpeed() * 3.6 << " km/h " << "  Throttle: " << Audi.get_CatThrottle() << "  Brake= " << Audi.get_CarBrake()
             << " Engine: " << setw(4) <<(Audi.get_Engine().Engine_is_On() ? "ON" : "OFF")
             << "\nFuel: " << Audi.get_Car_FuelTank().get_FuelTank_Level() << " Consumption Fuel Model: "<< setw(7) << Audi.get_Engine().Check_Consumption()
             << "\nEngine Work time: " << Audi.get_Trip_Computer().get_Work_Time()
             << "\nMomentary Fuel Consumption: " << Audi.get_Trip_Computer().get_Momentary_Fuel_Consumption_100KM()
             << "\nAverage Fuel Consumption: " << Audi.get_Trip_Computer().get_Average_Fuel_Consumption()
-            << "\nDistance: " << Audi.get_Trip_Computer().get_Distance();
+            << "\nDistance: " << Audi.get_Trip_Computer().get_Distance()
+            << "\nCurrent gear: " << Audi.get_Car_Transmission().get_Current_Gear()
+            << "\nRPM: " << Audi.get_Car_Transmission().get_RPM()
+            << "\nShiftPolicy transmission: " << setw(7) << Audi.get_Car_Transmission().Check_ShiftPolicy();
             //<< flush;
 
         this_thread::sleep_for(chrono::milliseconds(16));
