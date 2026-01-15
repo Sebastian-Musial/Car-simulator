@@ -121,13 +121,16 @@ int main ()
         }
 
         //Obsluga skrzyni biegu
-        if (Key_Gear_Up()) {
-            Audi.get_Car_Transmission().Gear_up();
+
+        if (!Audi.get_Car_Transmission().isAuto()) {
+            if (Key_Gear_Up()) {
+                Audi.get_Car_Transmission().Update_Shift(G_Shift::Up);
+            }
+            if (Key_Gear_Down()) {
+                Audi.get_Car_Transmission().Update_Shift(G_Shift::Down);
+            }
         }
 
-        if (Key_Gear_Down()) {
-            Audi.get_Car_Transmission().Gear_down();
-        }
         
         if (Key_ShiftPolicy_Transmission()) {
             Audi.get_Car_Transmission().change_ShiftPolicy();

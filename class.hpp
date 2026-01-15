@@ -2,6 +2,7 @@
 #include <algorithm> //Wymagane dla std::clamp(value, min, max); + std::max(Value_A, Value_B);#
 #include <memory> //Wymagana do uzytego wzorca state dla stanu silnika
 #include <vector>
+#include <string>
 #include "Engine_mechanics.hpp"
 #include "ShiftPolicy_Transmission.hpp"
 
@@ -125,9 +126,11 @@ class Transmission {
         }
 
         //Metody
+        bool isAuto() const { return Curent_ShiftPolicy == E_ShiftPolicy::Auto; }
+
         void change_ShiftPolicy() {
             if (Curent_ShiftPolicy == E_ShiftPolicy::Manual) set_ShiftPolicy_Auto();
-            if (Curent_ShiftPolicy == E_ShiftPolicy::Auto) set_ShiftPolicy_Manual();
+            else if (Curent_ShiftPolicy == E_ShiftPolicy::Auto) set_ShiftPolicy_Manual();
         }
         void Gear_up() {
             if (Current_Gear < Gears_Ratio.size()) Current_Gear++;
@@ -149,17 +152,10 @@ class Transmission {
             return Gears_Ratio[Gear_Index] * Final_drive;
         }
 
-        void Count_RPM(const Car& T_Car) {
-            RPM = ( (T_Car.get_CarSpeed() / R_Wheel) * Total_Ratio() ) * 60.0 / (2.0 * Pi);
-            /*
-            RPM - ilość obrotów w ciągu minuty
-            RPM = ( wheel_speed [V / R] * total_ratio [gear * final drive] ) * 60 / (2 * Pi)]
-            [rad/x] * [ile obrótów zrobi silnik w momencie gdy koło robi 1 obrót];
+        void Count_RPM(const Car& T_Car); //Deklaracja tutaj a na dole pliku będzie implementacja metody
 
-            [rad/s]
-            V - prędkość
-            R - Promień koła <-- na potrzeby zadania będzie to stała wartość
-            */
+        void Update_Shift(G_Shift gs) {
+            if (Shift_Transmission) Shift_Transmission->Update_Gear(*this, gs);
         }
 };
 
@@ -405,6 +401,7 @@ class Car {
             
             //Dla nowej mechaniki ze skrzynią biegów dokonujemy dodatkowych obliczeń
             Car_Transmission.Count_RPM(*this); //Liczy RPM i wewnątrz obektu Transmission wstawia mu wartość
+            if (Car_Transmission.isAuto()) Car_Transmission.Update_Shift(G_Shift::Up); //Ignorowanie G_Shift bo automat
             double Actual_Engine_Moment= Car_Engine.Engine_Moment(Car_Transmission.get_RPM(), CarThrottle);
 
 
@@ -431,3 +428,19 @@ class Car {
             Car_Engine.Consume_Fuel(get_CatThrottle(), get_CarSpeed(), DT); //Spalanie paliwa na koniec po okresleniu nowej predkosci
         }
 }; 
+
+
+
+
+inline void Transmission::Count_RPM(const Car& T_Car) {
+    RPM = ( (T_Car.get_CarSpeed() / R_Wheel) * Total_Ratio() ) * 60.0 / (2.0 * Pi);
+    }
+            /*
+            RPM - ilość obrotów w ciągu minuty
+            RPM = ( wheel_speed [V / R] * total_ratio [gear * final drive] ) * 60 / (2 * Pi)]
+            [rad/x] * [ile obrótów zrobi silnik w momencie gdy koło robi 1 obrót];
+
+            [rad/s]
+            V - prędkość
+            R - Promień koła <-- na potrzeby zadania będzie to stała wartość
+            */
