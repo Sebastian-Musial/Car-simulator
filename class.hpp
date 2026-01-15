@@ -125,6 +125,10 @@ class Transmission {
         }
 
         //Metody
+        void change_ShiftPolicy() {
+            if (Curent_ShiftPolicy == E_ShiftPolicy::Manual) set_ShiftPolicy_Auto();
+            if (Curent_ShiftPolicy == E_ShiftPolicy::Auto) set_ShiftPolicy_Manual();
+        }
         void Gear_up() {
             if (Current_Gear < Gears_Ratio.size()) Current_Gear++;
         }
@@ -136,6 +140,7 @@ class Transmission {
         string Check_ShiftPolicy() {
             if (Curent_ShiftPolicy == E_ShiftPolicy::Manual) return "Manual";
             if (Curent_ShiftPolicy == E_ShiftPolicy::Auto) return "Auto";
+            return "Unknown";
         }
 
         double Total_Ratio() const {  //Całkowite przełożenie
@@ -348,9 +353,12 @@ class Car {
         Brake get_Car_Brake() const {
             return this->Car_Brake;
         }      
-        /*Transmission get_Car_Transmission() const {
-            return this->get_Car_Transmission;
-        }*/      
+        const Transmission& get_Car_Transmission() const {
+            return Car_Transmission;
+        }    
+        Transmission& get_Car_Transmission() {
+            return Car_Transmission;
+        }    
         Dashboard get_Car_Dashboard() const {
             return this->Car_Dashboard;
         }

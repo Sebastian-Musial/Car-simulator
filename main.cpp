@@ -38,6 +38,10 @@ void EnableVTMode()
     bool Key_Consume_Eco()      { return (GetAsyncKeyState('2')      & 0x0001) != 0; }  //Test czy klawisz R jest wcisniety dla Engine
     bool Key_Consume_Sport()    { return (GetAsyncKeyState('3')      & 0x0001) != 0; }  //Test czy klawisz R jest wcisniety dla Engine
 
+    bool Key_Gear_Up()   { return (GetAsyncKeyState('A')      & 0x0001) != 0; }  //Test czy klawisz A jest wcisniety dla zwiększenia biegu 
+    bool Key_Gear_Down()   { return (GetAsyncKeyState('Z')      & 0x0001) != 0; }  //Test czy klawisz Z jest wcisniety dla zmniejszenia biegu
+    bool Key_ShiftPolicy_Transmission()   { return (GetAsyncKeyState('M')      & 0x0001) != 0; }  //Test czy klawisz M jest wcisniety dla zmiany trbu manual/auto 
+
 //#else   //Tutaj powinna byc instrukcja dla linux
 #endif
 
@@ -114,6 +118,19 @@ int main ()
             if (Key_Consume_Normal())   {Audi.get_Engine().set_Consumption_Normal();}
             else if (Key_Consume_Eco())      {Audi.get_Engine().set_Consumption_Eco();}
             else if (Key_Consume_Sport())    {Audi.get_Engine().set_Consumption_Sport();} 
+        }
+
+        //Obsluga skrzyni biegu
+        if (Key_Gear_Up()) {
+            Audi.get_Car_Transmission().Gear_up();
+        }
+
+        if (Key_Gear_Down()) {
+            Audi.get_Car_Transmission().Gear_down();
+        }
+        
+        if (Key_ShiftPolicy_Transmission()) {
+            Audi.get_Car_Transmission().change_ShiftPolicy();
         }
 
         //Wypisanie tekstu z informacjami w czasie rzeczywistym
