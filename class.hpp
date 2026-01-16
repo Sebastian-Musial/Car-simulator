@@ -84,7 +84,7 @@ class Brake {
         }*/
 
         //Metody
-        void TCS(double F_max, double F_Eng , Car& TCS_Car) {
+        void TCS(double& F_max, double& F_Eng , Car& TCS_Car) {
         //TCS – limit napędu gdy podczas ruszania wchodzimy w poślizg
         //Sprawdzenie: Czy żądana moc silnika nie przekracza maksymalnej przyczepności
             double F_Eng_cmd = F_Eng; //Wymaga testu
@@ -94,7 +94,7 @@ class Brake {
             }
         }
 
-        void  ABS(Car& ABS_Car, double F_Brake, double F_Brake_cmd, double F_max, double DT) {
+        void  ABS(Car& ABS_Car, double& F_Brake, double& F_Brake_cmd, double& F_max, double DT) {
             //ABS
             //Decel to w fizyce opóźnienie, w łatwiejszym tłumaczeniu ujemne przyśpieszenie czyli tempo zmniejszania prędkości w czasie [m/s^2]
             //decel = |F_brake| / m
