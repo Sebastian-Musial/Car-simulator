@@ -84,17 +84,17 @@ class Brake {
         }*/
 
         //Metody
-        void TCS(double F_Eng, double F_max, bool TCS_Active) {
+        void TCS(double F_max, double F_Eng , Car& TCS_Car) {
         //TCS – limit napędu gdy podczas ruszania wchodzimy w poślizg
         //Sprawdzenie: Czy żądana moc silnika nie przekracza maksymalnej przyczepności
             double F_Eng_cmd = F_Eng; //Wymaga testu
             if (F_max > 0.0 && F_Eng_cmd > F_max) {
-                TCS_Active = true;
+                TCS_Car.set_TCS_Active(true); //= true;
                 F_Eng = tcsK * F_max;   //TCS - włączony więc ograniczamy siłę napędu do 95% zgodnie z tcsK
             }
         }
-        //Flagi bool TCS i ABS chwilowo - docelowo przenieść do car
-        void  ABS(double abs_Timer, double abs_ReleaseK, const Car& ABS_Car, bool ABS_Active, double F_Brake, double F_Brake_cmd, double F_max) {
+
+        void  ABS(Car& ABS_Car, double F_Brake, double F_Brake_cmd, double F_max, double DT) {
             //ABS
             //Decel to w fizyce opóźnienie, w łatwiejszym tłumaczeniu ujemne przyśpieszenie czyli tempo zmniejszania prędkości w czasie [m/s^2]
             //decel = |F_brake| / m
@@ -114,7 +114,7 @@ class Brake {
             4.F_max > 0.0
             */
             if (ABS_Car.get_CarSpeed() > 0.5 && nearLimit && decel > decel_lock && F_max > 0.0) {
-                ABS_Active = true;
+                ABS_Car.set_ABS_Active(true); //= true;
 
                 abs_Timer += DT;
                 const double period = max(0.001, abs_Period); //Zabezpieczenie przed dzieleniem przez zero w phase - uniknięcie błędów lub NaN
@@ -356,7 +356,6 @@ class Car {
         Transmission Car_Transmission;
         Dashboard Car_Dashboard;
 
-
         const double MAX_SPEED_MS = 50.0; //[M/S] -> 50 m/s * 3.6 = 180 km/h. Mnozenie przez 3.6 w celu uzyskania km/h
         const int MASS_KG = 1000;
         const double F_Eng_MAX = 4000.0;    //Sila w [N] na potrzebny nowej mechaniki  sumy wszystkich sil
@@ -369,6 +368,9 @@ class Car {
 
         double c_roll = 75.0;   //Opor toczenia  [N]
         double c_drag = 0.5;    //Opor powietrza [N / (m/s)^2]
+
+        bool TCS_Active;
+        bool ABS_Active;
         
         //Ogranicznik szybkosci zmian wartosci
         static double Rate_Limiter(double Current_Value, double Target_Value, double Max_Value_For_Rate, double DT) { //DT - Krok czasu, Max_Value_For_Tate = maksymalna wartosc/predkosc na sekunde/klatke
@@ -436,6 +438,12 @@ class Car {
         double get_MASS_KG() const {
             return this->MASS_KG;
         }
+        bool get_TCS_Active() const {
+            return this->TCS_Active;
+        }
+        bool get_ABS_Active() const {
+            return this->ABS_Active;
+        }
 
         //Settery klas
         void set_FuelTank(FuelTank S_FuelTank) {
@@ -454,6 +462,12 @@ class Car {
         }
         void set_CarSpeed(double S_CarSpeed) {
             CarSpeed = S_CarSpeed;
+        }
+        void set_TCS_Active(bool S_TCS)  {
+            TCS_Active = S_TCS;
+        }
+        void set_ABS_Active(bool S_ABS)  {
+            ABS_Active = S_ABS;
         }
        
         //Metody
