@@ -10,6 +10,9 @@
 
 using namespace std;
 
+double mu = 0.9;                
+static constexpr double g = 9.81;
+
 class Car;
 
 class FuelTank {
@@ -51,27 +54,48 @@ class FuelTank {
 
 class Brake {
     private:
-        int Brake_Power;
+        //int Brake_Power;
+        //ABS
+        double abs_Timer = 0.0;          //[s]
+        double abs_ReleaseK = 0.6;       //Ile limitu przyczepności wykorzystuje w momencie odpuszczania hamowania aby koło się nie blokowało - 60%
+        double abs_Period = 0.06;        //[s] okres pulsacji (60 ms)
+        double abs_DutyRelease = 0.5;    //Ustawienie jaka część cyklu jest przekazywana na odpuszczenie - w tym przypadku jest to 50% czyli połowa cyklu odpuszcza a połowa dociska hamulec 
+
+        //TCS
+        double tcsK = 0.95;             //Ile limitu przyczepności wykorzystuje w momencie ruszania - limit przyczepności jaki jest przekazywany do napędu to 95% limitu
 
     public:
         //Konstruktor
-        Brake(int C_Brake_Power)
-            : Brake_Power(C_Brake_Power) {}
+        /*Brake(int C_Brake_Power)
+            : Brake_Power(C_Brake_Power) {}*/
 
         //Konstruktor domyslny
-        Brake() { Brake_Power = 30; }
+        /*Brake() { Brake_Power = 30; }*/
 
         //Getter
-        int get_Brake_Power() const {
+        /*int get_Brake_Power() const {
             return this->Brake_Power;
-        }
+        }*/
 
         //Setter
-        void set_Brake_Power(int S_Brake_Power) {
+        /*void set_Brake_Power(int S_Brake_Power) {
             Brake_Power = S_Brake_Power;
-        }
+        }*/
 
         //Metody
+        void TCS(double F_Eng, double F_max, bool TCS_Active) {
+        //TCS – limit napędu gdy podczas ruszania wchodzimy w poślizg
+        //Sprawdzenie: Czy żądana moc silnika nie przekracza maksymalnej przyczepności
+            double F_Eng_cmd = F_Eng; //Wymaga testu
+            if (F_max > 0.0 && F_Eng_cmd > F_max) {
+                TCS_Active = true;
+                F_Eng = tcsK * F_max;   //TCS - włączony więc ograniczamy siłę napędu do 95% zgodnie z tcsK
+            }
+        }
+        
+        
+        
+        
         /*Potrzebna metoda hamowania ale brakuje nam predkosci do ktorej metoda moze sie odniesc*/
         /*
         void Stop(int Speed) {
