@@ -11,8 +11,8 @@
 
 using namespace std;
 
-double mu = 0.9;                
-constexpr double g = 9.81;
+inline double mu = 0.09;                
+inline constexpr double g = 9.81;
 
 class Car;
 
@@ -84,51 +84,9 @@ class Brake {
         }*/
 
         //Metody
-        void TCS(double& F_max, double& F_Eng_cmd, double& F_Eng , Car& TCS_Car) {
-        //TCS – limit napędu gdy podczas ruszania wchodzimy w poślizg
-        //Sprawdzenie: Czy żądana moc silnika nie przekracza maksymalnej przyczepności
-            if (F_max > 0.0 && F_Eng_cmd > F_max) {
-                TCS_Car.set_TCS_Active(true); //= true;
-                F_Eng = tcsK * F_max;   //TCS - włączony więc ograniczamy siłę napędu do 95% zgodnie z tcsK
-            }
-        }
+        void TCS(double& F_max, double& F_Eng_cmd, double& F_Eng , Car& TCS_Car);
 
-        void  ABS(Car& ABS_Car, double& F_Brake, double& F_Brake_cmd, double& F_max, double DT) {
-            //ABS
-            //Decel to w fizyce opóźnienie, w łatwiejszym tłumaczeniu ujemne przyśpieszenie czyli tempo zmniejszania prędkości w czasie [m/s^2]
-            //decel = |F_brake| / m
-            double decel = (ABS_Car.get_MASS_KG() > 0.0) ? (abs(F_Brake) / ABS_Car.get_MASS_KG()) : 0.0; //Walidacja sprawdzajaca czy auto cos waży
-
-            //Decel_lock to maksymalne możliwe opóźnienie [Decel]. Jeżeli opóźnienie [Decel] będzie większe od Decel_lock to auto może wpaść w poslizg - ryzyko blokady kół
-            //Wartość 0.9 bierze się z tego że chcemy dać 10% marginesu bezpieczeńśtwa. ABS reaguje wcześniej zanim osiągniemy maksymalną wartość limitu tarcia i wpadniemy w poślizg
-            const double decel_lock = 0.9 * max(0.0, mu) * g;
-
-            //NearLimit zapobiega aktywacji ABS przy lekkim hamowaniu. Sprawdzany jest warunek czy żądana siła hamowania jest wyższa od (maksymalnej siły hamowania [granicy przyczepności] - 5%)
-            const bool nearLimit = (F_max > 0.0) ? (F_Brake_cmd > 0.95 * F_max) : false;
-
-            /*Warunki uruchomienia ABS
-            1.Auto w ruchu - predkość powyżej 0.5
-            2.Warunek nearlimit spełniony = true. Żądana siła hamowania jest wyższa od 95% granicy przyczepności
-            3.Aktualne opóźnienie przekracza próg decel_lock, czyli jesteśmy blisko granicy przyczepności i grozi blokowanie kół
-            4.F_max > 0.0
-            */
-            if (ABS_Car.get_CarSpeed() > 0.5 && nearLimit && decel > decel_lock && F_max > 0.0) {
-                ABS_Car.set_ABS_Active(true); //= true;
-
-                abs_Timer += DT;
-                const double period = max(0.001, abs_Period); //Zabezpieczenie przed dzieleniem przez zero w phase - uniknięcie błędów lub NaN
-                const double phase = fmod(abs_Timer, period) / period; //fmod to odpowiednik modulo (%) dla liczb rzeczywistych. Modulo obsługuje tylko int a fmod jest w stanie obsłużyć double bez utraty danych po kropkce
-
-                const bool releasePhase = (phase < clamp(abs_DutyRelease, 0.0, 1.0));
-                if (releasePhase) {
-                    F_Brake = abs_ReleaseK * F_max;   //set
-                } else {
-                    F_Brake = F_max;                 //set
-                }
-            } else {
-                abs_Timer = 0.0;
-            }
-        }
+        void  ABS(Car& ABS_Car, double& F_Brake, double& F_Brake_cmd, double& F_max, double DT);
         
         /*Potrzebna metoda hamowania ale brakuje nam predkosci do ktorej metoda moze sie odniesc*/
         /*
@@ -529,7 +487,7 @@ class Car {
 
 
 
-
+//Definicje metod z - Transmission
 inline void Transmission::Count_RPM(const Car& T_Car) {
     RPM = ( (T_Car.get_CarSpeed() / R_Wheel) * Total_Ratio() ) * 60.0 / (2.0 * Pi);
     }
@@ -542,3 +500,51 @@ inline void Transmission::Count_RPM(const Car& T_Car) {
             V - prędkość
             R - Promień koła <-- na potrzeby zadania będzie to stała wartość
             */
+
+
+//Definicje metod z - BRAKE
+inline void Brake::TCS(double& F_max, double& F_Eng_cmd, double& F_Eng , Car& TCS_Car) {
+    //TCS – limit napędu gdy podczas ruszania wchodzimy w poślizg
+    //Sprawdzenie: Czy żądana moc silnika nie przekracza maksymalnej przyczepności
+    if (F_max > 0.0 && F_Eng_cmd > F_max) {
+    TCS_Car.set_TCS_Active(true); //= true;
+    F_Eng = tcsK * F_max;   //TCS - włączony więc ograniczamy siłę napędu do 95% zgodnie z tcsK
+    }
+}
+
+inline void  Brake::ABS(Car& ABS_Car, double& F_Brake, double& F_Brake_cmd, double& F_max, double DT) {
+    //ABS
+    //Decel to w fizyce opóźnienie, w łatwiejszym tłumaczeniu ujemne przyśpieszenie czyli tempo zmniejszania prędkości w czasie [m/s^2]
+    //decel = |F_brake| / m
+    double decel = (ABS_Car.get_MASS_KG() > 0.0) ? (abs(F_Brake) / ABS_Car.get_MASS_KG()) : 0.0; //Walidacja sprawdzajaca czy auto cos waży
+
+    //Decel_lock to maksymalne możliwe opóźnienie [Decel]. Jeżeli opóźnienie [Decel] będzie większe od Decel_lock to auto może wpaść w poslizg - ryzyko blokady kół
+    //Wartość 0.9 bierze się z tego że chcemy dać 10% marginesu bezpieczeńśtwa. ABS reaguje wcześniej zanim osiągniemy maksymalną wartość limitu tarcia i wpadniemy w poślizg
+    const double decel_lock = 0.9 * max(0.0, mu) * g;
+
+    //NearLimit zapobiega aktywacji ABS przy lekkim hamowaniu. Sprawdzany jest warunek czy żądana siła hamowania jest wyższa od (maksymalnej siły hamowania [granicy przyczepności] - 5%)
+    const bool nearLimit = (F_max > 0.0) ? (F_Brake_cmd > 0.95 * F_max) : false;
+
+    /*Warunki uruchomienia ABS
+    1.Auto w ruchu - predkość powyżej 0.5
+    2.Warunek nearlimit spełniony = true. Żądana siła hamowania jest wyższa od 95% granicy przyczepności
+    3.Aktualne opóźnienie przekracza próg decel_lock, czyli jesteśmy blisko granicy przyczepności i grozi blokowanie kół
+    4.F_max > 0.0
+    */
+    if (ABS_Car.get_CarSpeed() > 0.5 && nearLimit && decel > decel_lock && F_max > 0.0) {
+    ABS_Car.set_ABS_Active(true); //= true;
+
+    abs_Timer += DT;
+    const double period = max(0.001, abs_Period); //Zabezpieczenie przed dzieleniem przez zero w phase - uniknięcie błędów lub NaN
+    const double phase = fmod(abs_Timer, period) / period; //fmod to odpowiednik modulo (%) dla liczb rzeczywistych. Modulo obsługuje tylko int a fmod jest w stanie obsłużyć double bez utraty danych po kropkce
+
+    const bool releasePhase = (phase < clamp(abs_DutyRelease, 0.0, 1.0));
+    if (releasePhase) {
+    F_Brake = abs_ReleaseK * F_max;   //set
+    } else {
+    F_Brake = F_max;                 //set
+    }
+    } else {
+    abs_Timer = 0.0;
+    }
+}
