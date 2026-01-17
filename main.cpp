@@ -151,9 +151,9 @@ int main ()
         #endif */  
         
         //czyszczenie ekranu bez miogotania i bez pozostawiania blednych liter na koncu wyrazu
-        cout << "\x1b[" << 14 << "A";
-        for(int i=0;i<13;i++) cout << "\x1b[2K\n";
-        cout << "\x1b[" << 14 << "A";
+        cout << "\x1b[" << 15 << "A";
+        for(int i=0;i<15;i++) cout << "\x1b[2K\n";
+        cout << "\x1b[" << 15 << "A";
 
         cout << fixed << setprecision(2);
         cout << "===CAR INFORMATION===\n"
@@ -168,7 +168,8 @@ int main ()
             << "\nDistance: " << Audi.get_Trip_Computer().get_Distance()
             << "\nCurrent gear: " << Audi.get_Car_Transmission().get_Current_Gear()
             << "\nRPM: " << Audi.get_Car_Transmission().get_RPM()
-            << "\nShiftPolicy transmission: " << setw(7) << Audi.get_Car_Transmission().Check_ShiftPolicy();
+            << "\nShiftPolicy transmission: " << setw(7) << Audi.get_Car_Transmission().Check_ShiftPolicy()
+            << "\nABS: " << setw(4) << Audi.ABS_info() << " TCS: " << setw(4) << Audi.TCS_info();
             //<< flush;
 
         this_thread::sleep_for(chrono::milliseconds(16));

@@ -429,6 +429,15 @@ class Car {
         }
        
         //Metody
+        string ABS_info() {
+            if (ABS_Active) return "ON";
+            else return "OFF";
+        }
+        string TCS_info() {
+            if (TCS_Active) return "ON";
+            else return "OFF";
+        }
+
         void Speed_Update (double DT, bool Click_Throttle, bool Click_Brake) {
             //Click_Throttle = false;   TEST DLA NOWEJ MECHANIKI SPRAWDANIA STANU SILNIKA
             //CarThrottle = Rate_Limiter(CarThrottle, Click_Throttle ? 1.0:0.0, Slew ,DT);
