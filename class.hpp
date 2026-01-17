@@ -12,7 +12,7 @@
 using namespace std;
 
 double mu = 0.9;                
-static constexpr double g = 9.81;
+constexpr double g = 9.81;
 
 class Car;
 
@@ -84,10 +84,9 @@ class Brake {
         }*/
 
         //Metody
-        void TCS(double& F_max, double& F_Eng , Car& TCS_Car) {
+        void TCS(double& F_max, double& F_Eng_cmd, double& F_Eng , Car& TCS_Car) {
         //TCS – limit napędu gdy podczas ruszania wchodzimy w poślizg
         //Sprawdzenie: Czy żądana moc silnika nie przekracza maksymalnej przyczepności
-            double F_Eng_cmd = F_Eng; //Wymaga testu
             if (F_max > 0.0 && F_Eng_cmd > F_max) {
                 TCS_Car.set_TCS_Active(true); //= true;
                 F_Eng = tcsK * F_max;   //TCS - włączony więc ograniczamy siłę napędu do 95% zgodnie z tcsK
@@ -369,8 +368,8 @@ class Car {
         double c_roll = 75.0;   //Opor toczenia  [N]
         double c_drag = 0.5;    //Opor powietrza [N / (m/s)^2]
 
-        bool TCS_Active;
-        bool ABS_Active;
+        bool TCS_Active = false;
+        bool ABS_Active = false;
         
         //Ogranicznik szybkosci zmian wartosci
         static double Rate_Limiter(double Current_Value, double Target_Value, double Max_Value_For_Rate, double DT) { //DT - Krok czasu, Max_Value_For_Tate = maksymalna wartosc/predkosc na sekunde/klatke
@@ -409,8 +408,11 @@ class Car {
         FuelTank& get_Car_FuelTank() {   //Przeciazenie do modyfikacji przez getter
             return Car_FuelTank;
         }      
-        Brake get_Car_Brake() const {
-            return this->Car_Brake;
+        const Brake& get_Car_Brake() const {
+             return Car_Brake; 
+        }
+        Brake& get_Car_Brake() {
+            return Car_Brake;
         }      
         const Transmission& get_Car_Transmission() const {
             return Car_Transmission;
@@ -482,19 +484,37 @@ class Car {
             if (Car_Transmission.isAuto()) Car_Transmission.Update_Shift(G_Shift::Up); //Ignorowanie G_Shift bo automat
             double Actual_Engine_Moment= Car_Engine.Engine_Moment(Car_Transmission.get_RPM(), CarThrottle);
 
+            //Limit przyczepnosci - dla ABS i TCS
+            // F_max = mu * m * g
+            //Maksymalna siła = współczynnik przyczepności * masa auta * grawitacja
+            double F_max = std::max(0.0, mu) * MASS_KG * g;
 
             //Mechanika przyspieszenia:  Przyspieszenie = Throttle - Brake
             double Acceleration = 0.0;
 
-            double F_Eng = 0.0;     //[N]
-            double F_Brake = 0.0;   //[N]
+            double F_Eng = 0.0;         //[N] - siła wpływająca na przyśpieszenie
+            double F_Eng_cmd = 0.0;     //[N] - siła żądana 
+            double F_Brake = 0.0;       //[N] - siłą wpływająca na przyśpieszenie
+            double F_Brake_cmd = 0.0;   //[N] - siła żądana
             double F_Drag = c_drag * (CarSpeed * CarSpeed); //[N] 
             double F_Roll = c_roll;    //[N]
 
+
             //F_Eng = CarThrottle * F_Eng_MAX;  //Tworzymy moc napedu
             double wheel_Torque = Actual_Engine_Moment * Car_Transmission.Total_Ratio();    //Zamiana momentu sinlinka na siłę napędową. wheel_Torque - moment obrotowy kola
-            F_Eng = wheel_Torque / Car_Transmission.get_Wheel_Radius();  //Tworzymy moc napedu - nowa mechanika na podstawie obrotów i skrzynki biegów. Wartość 0.3 jako stała wartość promienia koła 
-            F_Brake = CarBrake * F_Brake_MAX;   //Tworzymy moc hamulca
+            F_Eng_cmd = wheel_Torque / Car_Transmission.get_Wheel_Radius();  //Tworzymy !żądaną! moc napedu - nowa mechanika na podstawie obrotów i skrzynki biegów. Wartość 0.3 jako stała wartość promienia koła 
+            F_Brake_cmd = CarBrake * F_Brake_MAX;   //Tworzymy !żądaną! moc hamulca
+
+            //Reset flag jeżeli wcześniej były użyte te mechanizmy
+            ABS_Active = false;
+            TCS_Active = false;
+
+            F_Eng = F_Eng_cmd; //Wymaga testu
+            get_Car_Brake().TCS(F_max,F_Eng_cmd ,F_Eng, *this);
+
+            //Ograniczenie żądanej mocy hamulca do możliwej przyczepności
+            F_Brake = min(F_Brake_cmd, F_max);
+            get_Car_Brake().ABS(*this, F_Brake, F_Brake_cmd, F_max, DT);
             
             Acceleration = ((F_Eng - F_Brake - F_Drag - F_Roll) / MASS_KG); //[m/s^2]
 
