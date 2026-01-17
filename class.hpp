@@ -8,11 +8,9 @@
 #include <cmath>
 #include "Engine_mechanics.hpp"
 #include "ShiftPolicy_Transmission.hpp"
+#include "Physics.hpp"
 
 using namespace std;
-
-inline double mu = 0.09;                
-inline constexpr double g = 9.81;
 
 class Car;
 

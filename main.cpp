@@ -5,14 +5,12 @@
 #include <cstdio>   //Biblioteka dla wypisywania danych np, printf
 #include <windows.h>    //Biblioteka windows API - potrzebna do skorzystania z GetAsyncKeyState
 #include "class.hpp"
+#include "Physics.hpp"
 #include <iomanip>
 
 using namespace std;
 
 extern double TEST_STOP (Car & X, const double & DT);
-
-const double DT = 0.02; //Jest to liczba przykladowa i wymaga testowania
-//pętla update(dt) 
 
 #ifdef _WIN32   //Wlaczenie ANSI (Virtual Terminal) - rozwiazanie problemu migotania konsoli
 void EnableVTMode()
