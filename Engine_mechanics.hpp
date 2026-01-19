@@ -132,11 +132,7 @@ class TripComputer {
         }
 
         void Count_Work_Time() {
-            DT_Work_Time += DT;
-            if (DT_Work_Time > 1.0) {
-                Work_Time += 1.0;
-                DT_Work_Time -= 1.0;
-            }
+                Work_Time += DT;
         }
 
         void Update(double Car_Speed, double DT_C_Fuel) {

@@ -43,11 +43,7 @@ class TEST {
 
         //Metody
         void Start_Test_Time(double Car_Speed) {
-            TEST_DT_time += DT;
-            if (TEST_DT_time > 1.0) {
-                TEST_time += 1.0;
-                TEST_DT_time -= 1.0;
-            }
+            TEST_time += DT;
             TEST_Distance += Car_Speed * DT;
         }
 
