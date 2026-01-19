@@ -477,6 +477,9 @@ class Car {
             F_Eng_cmd = wheel_Torque / Car_Transmission.get_Wheel_Radius();  //Tworzymy !żądaną! moc napedu - nowa mechanika na podstawie obrotów i skrzynki biegów. Wartość 0.3 jako stała wartość promienia koła 
             F_Brake_cmd = CarBrake * F_Brake_MAX;   //Tworzymy !żądaną! moc hamulca
 
+            //Ograniczenie żądanej mocy hamulca do możliwej przyczepności
+            F_Brake = min(F_Brake_cmd, F_max);
+            
             //Reset flag jeżeli wcześniej były użyte te mechanizmy
             ABS_Active = false;
             TCS_Active = false;
@@ -484,15 +487,13 @@ class Car {
             if (!ABS_Enable) {
                 //ABS niedostępny - możliwy poślizg
                 if(F_Brake_cmd > F_max) {
-                    F_Brake = 0.6 * F_max; //Poślizg 
+                    F_Brake = 0.5 * F_max; //Poślizg 
                 } else {
                     F_Brake = F_Brake_cmd;
                 }
             }
             else {
                 //ABS - dostępny
-                //Ograniczenie żądanej mocy hamulca do możliwej przyczepności
-                F_Brake = min(F_Brake_cmd, F_max);
                 get_Car_Brake().ABS(*this, F_Brake, F_Brake_cmd, F_max, DT);
             }
 

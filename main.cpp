@@ -199,7 +199,7 @@ int main ()
         cout << "===CAR AND ROAD CONTROL==="
             << "\nUP = throttle, SPACE = brake, Q = quit, E = Engine ON/OFF, R - Refuel 1/2/3 - Consumption model Normal/Eco/Sport"
             << "\nA - GearUp, Z - GearDown, M - ShiftPolicy[Manual/Auto]"
-            << "\nI - Normal Road, O - Water Road, P - Snow Road"
+            << "\nI - Normal Road, O - Water Road, P - Snow Road, B - ABS ON/OFF"
             << "\n\n===CAR INFORMATION==="
             << "\nSpeed:" << Audi.get_CarSpeed() * 3.6 << " km/h " << "  Throttle: " << Audi.get_CatThrottle() << "  Brake= " << Audi.get_CarBrake()
             << " Engine: " << setw(4) <<(Audi.get_Engine().Engine_is_On() ? "ON" : "OFF")
