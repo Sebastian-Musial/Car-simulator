@@ -6,11 +6,13 @@
 #include <windows.h>    //Biblioteka windows API - potrzebna do skorzystania z GetAsyncKeyState
 #include "class.hpp"
 #include "Physics.hpp"
+#include "Test.cpp"
 #include <iomanip>
 
 using namespace std;
 
-extern double TEST_STOP (Car & X, const double & DT);
+//extern double TEST_STOP (Car & X, const double & DT);
+TEST Test;
 
 #ifdef _WIN32   //Wlaczenie ANSI (Virtual Terminal) - rozwiazanie problemu migotania konsoli
 void EnableVTMode()
@@ -45,13 +47,16 @@ void EnableVTMode()
     bool Key_Water_Road()      { return (GetAsyncKeyState('O')      & 0x0001) != 0; }  //Test czy klawisz O jest wcisniety dla zmiany typu drogi 
     bool Key_Snow_Road()    { return (GetAsyncKeyState('P')      & 0x0001) != 0; }  //Test czy klawisz P jest wcisniety dla zmiany typu drogi 
 
+    bool Key_Test_Reset()    { return (GetAsyncKeyState('J')      & 0x0001) != 0; }  //Test czy klawisz J jest wcisniety dla resetu testu
+    bool Key_Test_ON_OFF()    { return (GetAsyncKeyState('K')      & 0x0001) != 0; }  //Test czy klawisz K jest wcisniety dla ON/OFF testu
+
 //#else   //Tutaj powinna byc instrukcja dla linux
 #endif
 
 double position;
 int Choice; //Zmienna z ktorej bede korzystal do wyborow uzytkownika typu tak/nie
-enum class Test_X {off, on, first_time};    //Zmienna typu wyliczeniowego do weryfikacji stanu danego testu
-Test_X Test = Test_X::first_time;   //Nazwa zmiennej jest chwilowa poniewaz nie wykorzystuje innych testow w programie. W przyszlosci moze sie zmienic
+//enum class Test_X {off, on, first_time};    //Zmienna typu wyliczeniowego do weryfikacji stanu danego testu
+//Test_X Test = Test_X::first_time;   //Nazwa zmiennej jest chwilowa poniewaz nie wykorzystuje innych testow w programie. W przyszlosci moze sie zmienic
 
 enum class Road {Normal, Water, Snow};
 Road Actual_Road = Road::Normal;
@@ -66,7 +71,7 @@ int main ()
 
     Car Audi;
 
-        cout << "Czy chcesz uruchomic test po jakiej odleglosci auto rozpedzon do 50 km/h sie zatrzyma?\n1 - Tak / 2 - Nie" << endl;
+    /*    cout << "Czy chcesz uruchomic test po jakiej odleglosci auto rozpedzon do 50 km/h sie zatrzyma?\n1 - Tak / 2 - Nie" << endl;
         cout << "Dokonaj wyboru wpisujac cyfre a nastepnie naciskajac enter: ";
         cin >> Choice;
         cout << "\n";
@@ -79,13 +84,13 @@ int main ()
             system("clear");
         #endif
         }
-
+    */
     while (true) {
         if (Key_Quit()) break;
 
-        if(Test == Test_X::on) position = TEST_STOP(Audi, DT);
+        //if(Test == Test_X::on) position = TEST_STOP(Audi, DT);
 
-        if ((Test == Test_X::on) && (Audi.get_CarSpeed() == 0.0))
+        /*if ((Test == Test_X::on) && (Audi.get_CarSpeed() == 0.0))
         {
         #ifdef _WIN32   //Czyszczenie konsoli - Windows
             system("cls");
@@ -105,12 +110,13 @@ int main ()
         #else
             system("clear");    //Czyszczenei konsoli - Nie windows, wersja linux albo mac. W obecnej chwili program dziala tylko dla windows.
         #endif
-        } 
+        }*/
 
         bool Thr = Key_Throttle();
         bool Brk = Key_Brake();
 
-        if(Test != Test_X::off) Audi.Speed_Update(DT, Thr, Brk);     //Sprawdzenie czy nie dziala w tle test dla sprawdzania odleglosci
+        //if(Test != Test_X::off) 
+        Audi.Speed_Update(DT, Thr, Brk);     //Sprawdzenie czy nie dziala w tle test dla sprawdzania odleglosci
 
         if (Key_Engine()) {
             if (Audi.get_Engine().Engine_is_On()) Audi.get_Engine().set_Engine_Off();
@@ -163,6 +169,10 @@ int main ()
         //Przełącznik do uruchamiania ABS
         if (Key_ABS_Enable()) Audi.ABS_enabled_changer();
 
+        if (Key_Test_Reset()) Test.Reset();
+        if (Key_Test_ON_OFF()) Test.Test_ON_OFF();
+        if (Test.get_Test_Start())Test.Start_Test_Time(Audi.get_CarSpeed());
+
         //Wypisanie tekstu z informacjami w czasie rzeczywistym
         /*printf("\rspeed=%6.2f km/h   throttle=%.2f   brake=%.2f   fuel=%.2f L   engine=%s   ",
                     Audi.get_CarSpeed() * 3.6 , Audi.get_CatThrottle(), Audi.get_CarBrake(),    //Wystepuje tutaj mnozenie przez 3.6 w celu zamiany jednostki m/s na km/h
@@ -180,15 +190,17 @@ int main ()
         #endif */  
         
         //czyszczenie ekranu bez miogotania i bez pozostawiania blednych liter na koncu wyrazu
-        cout << "\x1b[" << 22 << "A";
-        for(int i=0;i<22;i++) cout << "\x1b[2K\n";
-        cout << "\x1b[" << 22 << "A";
+        //Potencjalny BUG jeżeli tekstu będzie więcej niż wielkość startowego okna - trzeba uważać
+        cout << "\x1b[" << 26 << "A";
+        for(int i=0;i<26;i++) cout << "\x1b[2K\n";
+        cout << "\x1b[" << 26 << "A";
 
         cout << fixed << setprecision(2);
-        cout << "===CAR INFORMATION===\n"
-            << "\nUP = throttle, SPACE = brake, Q = quit, E = Engine ON/OFF, R - Refuel 1/2/3 - Consumption model Normal/Eco/Sport\n"
-            << "\nA - GearUp, Z - GearDown, M - ShiftPolicy[Manual/Auto]\n"
-            << "\nI - Normal Road, O - Water Road, P - Snow Road\n"
+        cout << "===CAR AND ROAD CONTROL==="
+            << "\nUP = throttle, SPACE = brake, Q = quit, E = Engine ON/OFF, R - Refuel 1/2/3 - Consumption model Normal/Eco/Sport"
+            << "\nA - GearUp, Z - GearDown, M - ShiftPolicy[Manual/Auto]"
+            << "\nI - Normal Road, O - Water Road, P - Snow Road"
+            << "\n\n===CAR INFORMATION==="
             << "\nSpeed:" << Audi.get_CarSpeed() * 3.6 << " km/h " << "  Throttle: " << Audi.get_CatThrottle() << "  Brake= " << Audi.get_CarBrake()
             << " Engine: " << setw(4) <<(Audi.get_Engine().Engine_is_On() ? "ON" : "OFF")
             << "\nFuel: " << Audi.get_Car_FuelTank().get_FuelTank_Level() << " Consumption Fuel Model: "<< setw(7) << Audi.get_Engine().Check_Consumption()
@@ -202,9 +214,17 @@ int main ()
             << "\n\nABS: " << setw(4) << Audi.ABS_info() << " TCS: " << setw(4) << Audi.TCS_info()
             << "\nActual road: " << setw(7) << Road_Name;
             //<< flush;
-
         if (Audi.get_ABS_Enable()) cout<<"\nABS is Enable";
         else cout<<"\nABS is Unable";
+
+        cout << "\n\n===TEST INFORMATION===" 
+            << "\nJ - Test reset, K - Start/Stop test";
+
+        if (Test.get_Test_Start()) cout << "\nTest START";
+        else cout << "\nTest STOP";
+
+        cout << "\nTest time: " << Test.get_Test_Time()
+            << "\nTest Distance: " << Test.get_Test_Distance() << " M";
 
         this_thread::sleep_for(chrono::milliseconds(16));
     }
