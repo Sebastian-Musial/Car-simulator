@@ -326,6 +326,7 @@ class Car {
 
         bool TCS_Active = false;
         bool ABS_Active = false;
+        bool ABS_Enable = true;
         
         //Ogranicznik szybkosci zmian wartosci
         static double Rate_Limiter(double Current_Value, double Target_Value, double Max_Value_For_Rate, double DT) { //DT - Krok czasu, Max_Value_For_Tate = maksymalna wartosc/predkosc na sekunde/klatke
@@ -402,6 +403,9 @@ class Car {
         bool get_ABS_Active() const {
             return this->ABS_Active;
         }
+        bool get_ABS_Enable() const {
+            return this->ABS_Enable;
+        }
 
         //Settery klas
         void set_FuelTank(FuelTank S_FuelTank) {
@@ -436,6 +440,9 @@ class Car {
         string TCS_info() {
             if (TCS_Active) return "ON";
             else return "OFF";
+        }
+        void ABS_enabled_changer() {
+            ABS_Enable = !ABS_Enable;
         }
 
         void Speed_Update (double DT, bool Click_Throttle, bool Click_Brake) {
@@ -474,12 +481,23 @@ class Car {
             ABS_Active = false;
             TCS_Active = false;
 
+            if (!ABS_Enable) {
+                //ABS niedostępny - możliwy poślizg
+                if(F_Brake_cmd > F_max) {
+                    F_Brake = 0.6 * F_max; //Poślizg 
+                } else {
+                    F_Brake = F_Brake_cmd;
+                }
+            }
+            else {
+                //ABS - dostępny
+                //Ograniczenie żądanej mocy hamulca do możliwej przyczepności
+                F_Brake = min(F_Brake_cmd, F_max);
+                get_Car_Brake().ABS(*this, F_Brake, F_Brake_cmd, F_max, DT);
+            }
+
             F_Eng = F_Eng_cmd; //Wymaga testu
             get_Car_Brake().TCS(F_max,F_Eng_cmd ,F_Eng, *this);
-
-            //Ograniczenie żądanej mocy hamulca do możliwej przyczepności
-            F_Brake = min(F_Brake_cmd, F_max);
-            get_Car_Brake().ABS(*this, F_Brake, F_Brake_cmd, F_max, DT);
             
             Acceleration = ((F_Eng - F_Brake - F_Drag - F_Roll) / MASS_KG); //[m/s^2]
 

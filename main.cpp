@@ -40,6 +40,7 @@ void EnableVTMode()
     bool Key_Gear_Down()   { return (GetAsyncKeyState('Z')      & 0x0001) != 0; }  //Test czy klawisz Z jest wcisniety dla zmniejszenia biegu
     bool Key_ShiftPolicy_Transmission()   { return (GetAsyncKeyState('M')      & 0x0001) != 0; }  //Test czy klawisz M jest wcisniety dla zmiany trbu manual/auto 
 
+    bool Key_ABS_Enable()   { return (GetAsyncKeyState('B')      & 0x0001) != 0; }  //Test czy klawisz B jest wcisniety dla dostępności ABS w aucie
     bool Key_Normal_Road()   { return (GetAsyncKeyState('I')      & 0x0001) != 0; }  //Test czy klawisz I jest wcisniety dla zmiany typu drogi 
     bool Key_Water_Road()      { return (GetAsyncKeyState('O')      & 0x0001) != 0; }  //Test czy klawisz O jest wcisniety dla zmiany typu drogi 
     bool Key_Snow_Road()    { return (GetAsyncKeyState('P')      & 0x0001) != 0; }  //Test czy klawisz P jest wcisniety dla zmiany typu drogi 
@@ -159,6 +160,9 @@ int main ()
             Road_Name = "Snow";
         }
 
+        //Przełącznik do uruchamiania ABS
+        if (Key_ABS_Enable()) Audi.ABS_enabled_changer();
+
         //Wypisanie tekstu z informacjami w czasie rzeczywistym
         /*printf("\rspeed=%6.2f km/h   throttle=%.2f   brake=%.2f   fuel=%.2f L   engine=%s   ",
                     Audi.get_CarSpeed() * 3.6 , Audi.get_CatThrottle(), Audi.get_CarBrake(),    //Wystepuje tutaj mnozenie przez 3.6 w celu zamiany jednostki m/s na km/h
@@ -176,9 +180,9 @@ int main ()
         #endif */  
         
         //czyszczenie ekranu bez miogotania i bez pozostawiania blednych liter na koncu wyrazu
-        cout << "\x1b[" << 21 << "A";
-        for(int i=0;i<21;i++) cout << "\x1b[2K\n";
-        cout << "\x1b[" << 21 << "A";
+        cout << "\x1b[" << 22 << "A";
+        for(int i=0;i<22;i++) cout << "\x1b[2K\n";
+        cout << "\x1b[" << 22 << "A";
 
         cout << fixed << setprecision(2);
         cout << "===CAR INFORMATION===\n"
@@ -198,6 +202,9 @@ int main ()
             << "\n\nABS: " << setw(4) << Audi.ABS_info() << " TCS: " << setw(4) << Audi.TCS_info()
             << "\nActual road: " << setw(7) << Road_Name;
             //<< flush;
+
+        if (Audi.get_ABS_Enable()) cout<<"\nABS is Enable";
+        else cout<<"\nABS is Unable";
 
         this_thread::sleep_for(chrono::milliseconds(16));
     }
