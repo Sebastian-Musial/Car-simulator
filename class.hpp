@@ -5,8 +5,10 @@
 #include <memory> //Wymagana do uzytego wzorca state dla stanu silnika
 #include <vector>
 #include <string>
+#include <cmath>
 #include "Engine_mechanics.hpp"
 #include "ShiftPolicy_Transmission.hpp"
+#include "Physics.hpp"
 
 using namespace std;
 
@@ -51,27 +53,39 @@ class FuelTank {
 
 class Brake {
     private:
-        int Brake_Power;
+        //int Brake_Power;
+        //ABS
+        double abs_Timer = 0.0;          //[s]
+        double abs_ReleaseK = 0.6;       //Ile limitu przyczepności wykorzystuje w momencie odpuszczania hamowania aby koło się nie blokowało - 60%
+        double abs_Period = 0.06;        //[s] okres pulsacji (60 ms)
+        double abs_DutyRelease = 0.5;    //Ustawienie jaka część cyklu jest przekazywana na odpuszczenie - w tym przypadku jest to 50% czyli połowa cyklu odpuszcza a połowa dociska hamulec 
+
+        //TCS
+        double tcsK = 0.95;             //Ile limitu przyczepności wykorzystuje w momencie ruszania - limit przyczepności jaki jest przekazywany do napędu to 95% limitu
 
     public:
         //Konstruktor
-        Brake(int C_Brake_Power)
-            : Brake_Power(C_Brake_Power) {}
+        /*Brake(int C_Brake_Power)
+            : Brake_Power(C_Brake_Power) {}*/
 
         //Konstruktor domyslny
-        Brake() { Brake_Power = 30; }
+        /*Brake() { Brake_Power = 30; }*/
 
         //Getter
-        int get_Brake_Power() const {
+        /*int get_Brake_Power() const {
             return this->Brake_Power;
-        }
+        }*/
 
         //Setter
-        void set_Brake_Power(int S_Brake_Power) {
+        /*void set_Brake_Power(int S_Brake_Power) {
             Brake_Power = S_Brake_Power;
-        }
+        }*/
 
         //Metody
+        void TCS(double& F_max, double& F_Eng_cmd, double& F_Eng , Car& TCS_Car);
+
+        void  ABS(Car& ABS_Car, double& F_Brake, double& F_Brake_cmd, double& F_max, double DT);
+        
         /*Potrzebna metoda hamowania ale brakuje nam predkosci do ktorej metoda moze sie odniesc*/
         /*
         void Stop(int Speed) {
@@ -297,7 +311,6 @@ class Car {
         Transmission Car_Transmission;
         Dashboard Car_Dashboard;
 
-
         const double MAX_SPEED_MS = 50.0; //[M/S] -> 50 m/s * 3.6 = 180 km/h. Mnozenie przez 3.6 w celu uzyskania km/h
         const int MASS_KG = 1000;
         const double F_Eng_MAX = 4000.0;    //Sila w [N] na potrzebny nowej mechaniki  sumy wszystkich sil
@@ -310,6 +323,10 @@ class Car {
 
         double c_roll = 75.0;   //Opor toczenia  [N]
         double c_drag = 0.5;    //Opor powietrza [N / (m/s)^2]
+
+        bool TCS_Active = false;
+        bool ABS_Active = false;
+        bool ABS_Enable = true;
         
         //Ogranicznik szybkosci zmian wartosci
         static double Rate_Limiter(double Current_Value, double Target_Value, double Max_Value_For_Rate, double DT) { //DT - Krok czasu, Max_Value_For_Tate = maksymalna wartosc/predkosc na sekunde/klatke
@@ -348,8 +365,11 @@ class Car {
         FuelTank& get_Car_FuelTank() {   //Przeciazenie do modyfikacji przez getter
             return Car_FuelTank;
         }      
-        Brake get_Car_Brake() const {
-            return this->Car_Brake;
+        const Brake& get_Car_Brake() const {
+             return Car_Brake; 
+        }
+        Brake& get_Car_Brake() {
+            return Car_Brake;
         }      
         const Transmission& get_Car_Transmission() const {
             return Car_Transmission;
@@ -374,6 +394,18 @@ class Car {
         double get_CarBrake() const {
             return this->CarBrake;
         }
+        double get_MASS_KG() const {
+            return this->MASS_KG;
+        }
+        bool get_TCS_Active() const {
+            return this->TCS_Active;
+        }
+        bool get_ABS_Active() const {
+            return this->ABS_Active;
+        }
+        bool get_ABS_Enable() const {
+            return this->ABS_Enable;
+        }
 
         //Settery klas
         void set_FuelTank(FuelTank S_FuelTank) {
@@ -393,8 +425,26 @@ class Car {
         void set_CarSpeed(double S_CarSpeed) {
             CarSpeed = S_CarSpeed;
         }
+        void set_TCS_Active(bool S_TCS)  {
+            TCS_Active = S_TCS;
+        }
+        void set_ABS_Active(bool S_ABS)  {
+            ABS_Active = S_ABS;
+        }
        
         //Metody
+        string ABS_info() {
+            if (ABS_Active) return "ON";
+            else return "OFF";
+        }
+        string TCS_info() {
+            if (TCS_Active) return "ON";
+            else return "OFF";
+        }
+        void ABS_enabled_changer() {
+            ABS_Enable = !ABS_Enable;
+        }
+
         void Speed_Update (double DT, bool Click_Throttle, bool Click_Brake) {
             //Click_Throttle = false;   TEST DLA NOWEJ MECHANIKI SPRAWDANIA STANU SILNIKA
             //CarThrottle = Rate_Limiter(CarThrottle, Click_Throttle ? 1.0:0.0, Slew ,DT);
@@ -406,19 +456,49 @@ class Car {
             if (Car_Transmission.isAuto()) Car_Transmission.Update_Shift(G_Shift::Up); //Ignorowanie G_Shift bo automat
             double Actual_Engine_Moment= Car_Engine.Engine_Moment(Car_Transmission.get_RPM(), CarThrottle);
 
+            //Limit przyczepnosci - dla ABS i TCS
+            // F_max = mu * m * g
+            //Maksymalna siła = współczynnik przyczepności * masa auta * grawitacja
+            double F_max = std::max(0.0, mu) * MASS_KG * g;
 
             //Mechanika przyspieszenia:  Przyspieszenie = Throttle - Brake
             double Acceleration = 0.0;
 
-            double F_Eng = 0.0;     //[N]
-            double F_Brake = 0.0;   //[N]
+            double F_Eng = 0.0;         //[N] - siła wpływająca na przyśpieszenie
+            double F_Eng_cmd = 0.0;     //[N] - siła żądana 
+            double F_Brake = 0.0;       //[N] - siłą wpływająca na przyśpieszenie
+            double F_Brake_cmd = 0.0;   //[N] - siła żądana
             double F_Drag = c_drag * (CarSpeed * CarSpeed); //[N] 
             double F_Roll = c_roll;    //[N]
 
+
             //F_Eng = CarThrottle * F_Eng_MAX;  //Tworzymy moc napedu
             double wheel_Torque = Actual_Engine_Moment * Car_Transmission.Total_Ratio();    //Zamiana momentu sinlinka na siłę napędową. wheel_Torque - moment obrotowy kola
-            F_Eng = wheel_Torque / Car_Transmission.get_Wheel_Radius();  //Tworzymy moc napedu - nowa mechanika na podstawie obrotów i skrzynki biegów. Wartość 0.3 jako stała wartość promienia koła 
-            F_Brake = CarBrake * F_Brake_MAX;   //Tworzymy moc hamulca
+            F_Eng_cmd = wheel_Torque / Car_Transmission.get_Wheel_Radius();  //Tworzymy !żądaną! moc napedu - nowa mechanika na podstawie obrotów i skrzynki biegów. Wartość 0.3 jako stała wartość promienia koła 
+            F_Brake_cmd = CarBrake * F_Brake_MAX;   //Tworzymy !żądaną! moc hamulca
+
+            //Ograniczenie żądanej mocy hamulca do możliwej przyczepności
+            F_Brake = min(F_Brake_cmd, F_max);
+            
+            //Reset flag jeżeli wcześniej były użyte te mechanizmy
+            ABS_Active = false;
+            TCS_Active = false;
+
+            if (!ABS_Enable) {
+                //ABS niedostępny - możliwy poślizg
+                if(F_Brake_cmd > F_max) {
+                    F_Brake = 0.5 * F_max; //Poślizg 
+                } else {
+                    F_Brake = F_Brake_cmd;
+                }
+            }
+            else {
+                //ABS - dostępny
+                get_Car_Brake().ABS(*this, F_Brake, F_Brake_cmd, F_max, DT);
+            }
+
+            F_Eng = F_Eng_cmd; //Wymaga testu
+            get_Car_Brake().TCS(F_max,F_Eng_cmd ,F_Eng, *this);
             
             Acceleration = ((F_Eng - F_Brake - F_Drag - F_Roll) / MASS_KG); //[m/s^2]
 
@@ -433,7 +513,7 @@ class Car {
 
 
 
-
+//Definicje metod z - Transmission
 inline void Transmission::Count_RPM(const Car& T_Car) {
     RPM = ( (T_Car.get_CarSpeed() / R_Wheel) * Total_Ratio() ) * 60.0 / (2.0 * Pi);
     }
@@ -446,3 +526,51 @@ inline void Transmission::Count_RPM(const Car& T_Car) {
             V - prędkość
             R - Promień koła <-- na potrzeby zadania będzie to stała wartość
             */
+
+
+//Definicje metod z - BRAKE
+inline void Brake::TCS(double& F_max, double& F_Eng_cmd, double& F_Eng , Car& TCS_Car) {
+    //TCS – limit napędu gdy podczas ruszania wchodzimy w poślizg
+    //Sprawdzenie: Czy żądana moc silnika nie przekracza maksymalnej przyczepności
+    if (F_max > 0.0 && F_Eng_cmd > F_max) {
+    TCS_Car.set_TCS_Active(true); //= true;
+    F_Eng = tcsK * F_max;   //TCS - włączony więc ograniczamy siłę napędu do 95% zgodnie z tcsK
+    }
+}
+
+inline void  Brake::ABS(Car& ABS_Car, double& F_Brake, double& F_Brake_cmd, double& F_max, double DT) {
+    //ABS
+    //Decel to w fizyce opóźnienie, w łatwiejszym tłumaczeniu ujemne przyśpieszenie czyli tempo zmniejszania prędkości w czasie [m/s^2]
+    //decel = |F_brake| / m
+    double decel = (ABS_Car.get_MASS_KG() > 0.0) ? (abs(F_Brake) / ABS_Car.get_MASS_KG()) : 0.0; //Walidacja sprawdzajaca czy auto cos waży
+
+    //Decel_lock to maksymalne możliwe opóźnienie [Decel]. Jeżeli opóźnienie [Decel] będzie większe od Decel_lock to auto może wpaść w poslizg - ryzyko blokady kół
+    //Wartość 0.9 bierze się z tego że chcemy dać 10% marginesu bezpieczeńśtwa. ABS reaguje wcześniej zanim osiągniemy maksymalną wartość limitu tarcia i wpadniemy w poślizg
+    const double decel_lock = 0.9 * max(0.0, mu) * g;
+
+    //NearLimit zapobiega aktywacji ABS przy lekkim hamowaniu. Sprawdzany jest warunek czy żądana siła hamowania jest wyższa od (maksymalnej siły hamowania [granicy przyczepności] - 5%)
+    const bool nearLimit = (F_max > 0.0) ? (F_Brake_cmd > 0.95 * F_max) : false;
+
+    /*Warunki uruchomienia ABS
+    1.Auto w ruchu - predkość powyżej 0.5
+    2.Warunek nearlimit spełniony = true. Żądana siła hamowania jest wyższa od 95% granicy przyczepności
+    3.Aktualne opóźnienie przekracza próg decel_lock, czyli jesteśmy blisko granicy przyczepności i grozi blokowanie kół
+    4.F_max > 0.0
+    */
+    if (ABS_Car.get_CarSpeed() > 0.5 && nearLimit && decel > decel_lock && F_max > 0.0) {
+    ABS_Car.set_ABS_Active(true); //= true;
+
+    abs_Timer += DT;
+    const double period = max(0.001, abs_Period); //Zabezpieczenie przed dzieleniem przez zero w phase - uniknięcie błędów lub NaN
+    const double phase = fmod(abs_Timer, period) / period; //fmod to odpowiednik modulo (%) dla liczb rzeczywistych. Modulo obsługuje tylko int a fmod jest w stanie obsłużyć double bez utraty danych po kropkce
+
+    const bool releasePhase = (phase < clamp(abs_DutyRelease, 0.0, 1.0));
+    if (releasePhase) {
+    F_Brake = abs_ReleaseK * F_max;   //set
+    } else {
+    F_Brake = F_max;                 //set
+    }
+    } else {
+    abs_Timer = 0.0;
+    }
+}
