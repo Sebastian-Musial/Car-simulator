@@ -4,7 +4,7 @@
 #include <memory>
 #include "SurfaceModel.hpp"
 
-extern double mu;
+//extern double mu;
 extern double g;
 extern const double DT;
 
@@ -22,6 +22,8 @@ class Environment {
 
         //Get
         double get_grade_Percent() const {return grade_percent;}
+        const SurfaceModel& get_surface() const {return *surface_mu;}
+
 
         //Set
         void set_Surface(std::unique_ptr<SurfaceModel> new_s) {surface_mu = std::move(new_s);} //Wymagane przerzucanie jakiegoś make_unique z nową drogą 
@@ -33,8 +35,6 @@ class Environment {
             if (key == '1') set_Surface(std::make_unique<AsphaltSurface>());
             if (key == '2') set_Surface(std::make_unique<GravelSurface>());
             if (key == '3') set_Surface(std::make_unique<IceSurface>());
-
-            mu = surface_mu->mu();
         }
 
         void Add_Grade_Percent(double N_Percent) {grade_percent = grade_percent + N_Percent;}

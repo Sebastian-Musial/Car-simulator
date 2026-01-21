@@ -63,11 +63,12 @@ class Brake {
         //TCS
         double tcsK = 0.95;             //Ile limitu przyczepności wykorzystuje w momencie ruszania - limit przyczepności jaki jest przekazywany do napędu to 95% limitu
 
+        Environment& env;
+
     public:
         //Konstruktor
-        /*Brake(int C_Brake_Power)
-            : Brake_Power(C_Brake_Power) {}*/
-
+        Brake(Environment& C_env)
+            : env(C_env) {}
         //Konstruktor domyslny
         /*Brake() { Brake_Power = 30; }*/
 
@@ -348,7 +349,7 @@ class Car {
         Car() 
             : Car_TripComputer(),
               Car_FuelTank (), 
-              Car_Brake (), 
+              Car_Brake (env), 
               Car_Engine (Car_FuelTank, Car_TripComputer), 
               Car_Transmission (),
               Car_Dashboard (Car_FuelTank, Car_Engine),
@@ -388,9 +389,9 @@ class Car {
         Environment& get_Environment() {
             return env;
         }
-        /*const Environment& get_Environment() const {
+        const Environment& get_Environment() const {
             return env;
-        }*/
+        }
 
         //Gettery zmiennych
         double get_CarSpeed() const {   //Zwracana jednostka to [m/s], w celu uzyskania [km/h] wymagane mnozenie przez 3.6
@@ -419,9 +420,9 @@ class Car {
         void set_FuelTank(FuelTank S_FuelTank) {
             Car_FuelTank = S_FuelTank;
         }       
-        void set_Brake(Brake S_Brake) {
+        /*void set_Brake(Brake S_Brake) {
             Car_Brake = S_Brake;
-        }        
+        }*/        
         /*void set_Transmission(Transmission S_Transmission) {
             Car_Transmission = S_Transmission;
         }*/   
@@ -467,7 +468,7 @@ class Car {
             //Limit przyczepnosci - dla ABS i TCS wraz z aktualizacją o kąt nachylenia drogi
             // F_max = mu * m * g * cos(alpha)
             //Maksymalna siła = współczynnik przyczepności * masa auta * grawitacja * cos(alpha)
-            double F_max = std::max(0.0, mu) * MASS_KG * g * cos(env.alphaRad());
+            double F_max = std::max(0.0, env.get_surface().mu()) * MASS_KG * g * cos(env.alphaRad());
 
             //Mechanika przyspieszenia:  Przyspieszenie = Throttle - Brake
             double Acceleration = 0.0;
@@ -554,7 +555,7 @@ inline void  Brake::ABS(Car& ABS_Car, double& F_Brake, double& F_Brake_cmd, doub
 
     //Decel_lock to maksymalne możliwe opóźnienie [Decel]. Jeżeli opóźnienie [Decel] będzie większe od Decel_lock to auto może wpaść w poslizg - ryzyko blokady kół
     //Wartość 0.9 bierze się z tego że chcemy dać 10% marginesu bezpieczeńśtwa. ABS reaguje wcześniej zanim osiągniemy maksymalną wartość limitu tarcia i wpadniemy w poślizg
-    const double decel_lock = 0.9 * max(0.0, mu) * g;
+    const double decel_lock = 0.9 * max(0.0, env.get_surface().mu()) * g;
 
     //NearLimit zapobiega aktywacji ABS przy lekkim hamowaniu. Sprawdzany jest warunek czy żądana siła hamowania jest wyższa od (maksymalnej siły hamowania [granicy przyczepności] - 5%)
     const bool nearLimit = (F_max > 0.0) ? (F_Brake_cmd > 0.95 * F_max) : false;

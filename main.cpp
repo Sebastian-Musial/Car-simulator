@@ -152,8 +152,8 @@ int main ()
             Audi.get_Car_Transmission().change_ShiftPolicy();
         }
 
-        //Zmiana typu drogi - Wymagane dla testu ABC TCS
-        if (Key_Normal_Road()) {
+        //Zmiana typu drogi - Wymagane dla testu ABC TCS #NIE AKTUALNE - STARY KOD#
+        /*if (Key_Normal_Road()) {
             mu = 0.9;
             Actual_Road = Road::Normal;
             Road_Name = "Normal";
@@ -167,7 +167,11 @@ int main ()
             mu = 0.2;
             Actual_Road = Road::Snow;
             Road_Name = "Snow";
-        }
+        }*/
+        if (Key_Normal_Road()) {Audi.get_Environment().set_Surface(std::make_unique<AsphaltSurface>());}
+        if (Key_Water_Road()) {Audi.get_Environment().set_Surface(std::make_unique<GravelSurface>());}
+        if (Key_Snow_Road()) {Audi.get_Environment().set_Surface(std::make_unique<IceSurface>());}
+
 
         //Przełącznik do uruchamiania ABS
         if (Key_ABS_Enable()) Audi.ABS_enabled_changer();
@@ -220,7 +224,7 @@ int main ()
             << "\nRPM: " << Audi.get_Car_Transmission().get_RPM()
             << "\nShiftPolicy transmission: " << setw(7) << Audi.get_Car_Transmission().Check_ShiftPolicy()
             << "\n\nABS: " << setw(4) << Audi.ABS_info() << " TCS: " << setw(4) << Audi.TCS_info()
-            << "\nActual road: " << setw(7) << Road_Name << " , Actual grade: "<< Audi.get_Environment().get_grade_Percent();
+            << "\nActual road: " << setw(7) << Audi.get_Environment().get_surface().name() << " , Actual grade: "<< Audi.get_Environment().get_grade_Percent();
             //<< flush;
         if (Audi.get_ABS_Enable()) cout<<"\nABS is Enable";
         else cout<<"\nABS is Unable";
