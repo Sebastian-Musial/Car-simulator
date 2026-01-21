@@ -2,7 +2,6 @@
 
 #include <cmath>
 #include <memory>
-#include "Physics.hpp"
 #include "SurfaceModel.hpp"
 
 
@@ -12,10 +11,16 @@ const double DT = 0.02;
 
 class Environment {
     private:
-        double grade_percent;
-        std::unique_ptr<SurfaceModel> surface_mu;
-        double wind_ms;
+        double grade_percent = 0.0;
+        std::unique_ptr<SurfaceModel> surface_mu = std::make_unique<AsphaltSurface>();
+        double wind_ms = 0.0;
     public:
+        //Konstruktor
+            Environment() : 
+                grade_percent(0.0),
+                wind_ms(0.0),
+                surface_mu(std::make_unique<AsphaltSurface>()) {}
+
         //Get
         double gradePercent() const {return grade_percent;}
 
@@ -25,10 +30,10 @@ class Environment {
 
 
         //Metody
-        void Surface_changer(Environment& env, int key) { //Przesył klawiszy do tej metody zamiast w main 
-            if (key == '1') env.set_Surface(std::make_unique<AsphaltSurface>());
-            if (key == '2') env.set_Surface(std::make_unique<GravelSurface>());
-            if (key == '3') env.set_Surface(std::make_unique<IceSurface>());
+        void Surface_changer(int key) { //Przesył klawiszy do tej metody zamiast w main 
+            if (key == '1') set_Surface(std::make_unique<AsphaltSurface>());
+            if (key == '2') set_Surface(std::make_unique<GravelSurface>());
+            if (key == '3') set_Surface(std::make_unique<IceSurface>());
 
             mu = surface_mu->mu();
         }
