@@ -456,10 +456,10 @@ class Car {
             if (Car_Transmission.isAuto()) Car_Transmission.Update_Shift(G_Shift::Up); //Ignorowanie G_Shift bo automat
             double Actual_Engine_Moment= Car_Engine.Engine_Moment(Car_Transmission.get_RPM(), CarThrottle);
 
-            //Limit przyczepnosci - dla ABS i TCS
-            // F_max = mu * m * g
-            //Maksymalna siła = współczynnik przyczepności * masa auta * grawitacja
-            double F_max = std::max(0.0, mu) * MASS_KG * g;
+            //Limit przyczepnosci - dla ABS i TCS wraz z aktualizacją o kąt nachylenia drogi
+            // F_max = mu * m * g * cos(alpha)
+            //Maksymalna siła = współczynnik przyczepności * masa auta * grawitacja * cos(alpha)
+            double F_max = std::max(0.0, mu) * MASS_KG * g * cos(env.alphaRad());
 
             //Mechanika przyspieszenia:  Przyspieszenie = Throttle - Brake
             double Acceleration = 0.0;
@@ -470,7 +470,7 @@ class Car {
             double F_Brake_cmd = 0.0;   //[N] - siła żądana
             double F_Drag = c_drag * (CarSpeed * CarSpeed); //[N] 
             double F_Roll = c_roll;    //[N]
-
+            double F_Grade = MASS_KG * g * sin(env.alphaRad());
 
             //F_Eng = CarThrottle * F_Eng_MAX;  //Tworzymy moc napedu
             double wheel_Torque = Actual_Engine_Moment * Car_Transmission.Total_Ratio();    //Zamiana momentu sinlinka na siłę napędową. wheel_Torque - moment obrotowy kola
@@ -500,7 +500,7 @@ class Car {
             F_Eng = F_Eng_cmd; //Wymaga testu
             get_Car_Brake().TCS(F_max,F_Eng_cmd ,F_Eng, *this);
             
-            Acceleration = ((F_Eng - F_Brake - F_Drag - F_Roll) / MASS_KG); //[m/s^2]
+            Acceleration = ((F_Eng - F_Brake - F_Drag - F_Roll - F_Grade) / MASS_KG); //[m/s^2]
 
             /* Poprzednia mechanika zmiany predkosci
             CarSpeed = max(0.0, CarSpeed + (Acceleration * DT));    //Funkcja wybierajaca wieksza wartosc. Zabezpieczenie przed ujemna predkoscia

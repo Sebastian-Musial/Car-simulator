@@ -21,4 +21,6 @@ class Environment {
             if (key == '2') env.set_Surface(std::make_unique<GravelSurface>());
             if (key == '3') env.set_Surface(std::make_unique<IceSurface>());
         }
+
+        void Add_Grade_Percent(double N_Percent) {grade_percent += N_Percent;}
 };
