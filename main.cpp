@@ -34,18 +34,18 @@ void EnableVTMode()
     bool Key_Engine()   { return (GetAsyncKeyState('E')      & 0x0001) != 0; }  //Test czy klawisz E jest wcisniety dla Engine
     bool Key_Refuel()   { return (GetAsyncKeyState('R')      & 0x0001) != 0; }  //Test czy klawisz R jest wcisniety dla Engine
 
-    bool Key_Consume_Normal()   { return (GetAsyncKeyState('1')      & 0x0001) != 0; }  //Test czy klawisz R jest wcisniety dla Engine
-    bool Key_Consume_Eco()      { return (GetAsyncKeyState('2')      & 0x0001) != 0; }  //Test czy klawisz R jest wcisniety dla Engine
-    bool Key_Consume_Sport()    { return (GetAsyncKeyState('3')      & 0x0001) != 0; }  //Test czy klawisz R jest wcisniety dla Engine
+    bool Key_Consume_Normal()   { return (GetAsyncKeyState('8')      & 0x0001) != 0; }  //Test czy klawisz 8 jest wcisniety dla modelu spalania normal
+    bool Key_Consume_Eco()      { return (GetAsyncKeyState('9')      & 0x0001) != 0; }  //Test czy klawisz 9 jest wcisniety dla modelu spalania eco
+    bool Key_Consume_Sport()    { return (GetAsyncKeyState('0')      & 0x0001) != 0; }  //Test czy klawisz 0 jest wcisniety dla modelu spalania sport
 
     bool Key_Gear_Up()   { return (GetAsyncKeyState('A')      & 0x0001) != 0; }  //Test czy klawisz A jest wcisniety dla zwiększenia biegu 
     bool Key_Gear_Down()   { return (GetAsyncKeyState('Z')      & 0x0001) != 0; }  //Test czy klawisz Z jest wcisniety dla zmniejszenia biegu
     bool Key_ShiftPolicy_Transmission()   { return (GetAsyncKeyState('M')      & 0x0001) != 0; }  //Test czy klawisz M jest wcisniety dla zmiany trbu manual/auto 
 
     bool Key_ABS_Enable()   { return (GetAsyncKeyState('B')      & 0x0001) != 0; }  //Test czy klawisz B jest wcisniety dla dostępności ABS w aucie
-    bool Key_Normal_Road()   { return (GetAsyncKeyState('I')      & 0x0001) != 0; }  //Test czy klawisz I jest wcisniety dla zmiany typu drogi 
-    bool Key_Water_Road()      { return (GetAsyncKeyState('O')      & 0x0001) != 0; }  //Test czy klawisz O jest wcisniety dla zmiany typu drogi 
-    bool Key_Snow_Road()    { return (GetAsyncKeyState('P')      & 0x0001) != 0; }  //Test czy klawisz P jest wcisniety dla zmiany typu drogi 
+    bool Key_Asphalt_Road()   { return (GetAsyncKeyState('1')      & 0x0001) != 0; }  //Test czy klawisz 1 jest wcisniety dla zmiany typu drogi 
+    bool Key_Gravel_Road()      { return (GetAsyncKeyState('2')      & 0x0001) != 0; }  //Test czy klawisz 2 jest wcisniety dla zmiany typu drogi 
+    bool Key_Ice_Road()    { return (GetAsyncKeyState('3')      & 0x0001) != 0; }  //Test czy klawisz 3 jest wcisniety dla zmiany typu drogi 
 
     bool Key_Test_Reset()    { return (GetAsyncKeyState('J')      & 0x0001) != 0; }  //Test czy klawisz J jest wcisniety dla resetu testu
     bool Key_Test_ON_OFF()    { return (GetAsyncKeyState('K')      & 0x0001) != 0; }  //Test czy klawisz K jest wcisniety dla ON/OFF testu
@@ -168,9 +168,9 @@ int main ()
             Actual_Road = Road::Snow;
             Road_Name = "Snow";
         }*/
-        if (Key_Normal_Road()) {Audi.get_Environment().set_Surface(std::make_unique<AsphaltSurface>());}
-        if (Key_Water_Road()) {Audi.get_Environment().set_Surface(std::make_unique<GravelSurface>());}
-        if (Key_Snow_Road()) {Audi.get_Environment().set_Surface(std::make_unique<IceSurface>());}
+        if (Key_Asphalt_Road()) {Audi.get_Environment().set_Surface(std::make_unique<AsphaltSurface>());}
+        if (Key_Gravel_Road()) {Audi.get_Environment().set_Surface(std::make_unique<GravelSurface>());}
+        if (Key_Ice_Road()) {Audi.get_Environment().set_Surface(std::make_unique<IceSurface>());}
 
 
         //Przełącznik do uruchamiania ABS
@@ -208,10 +208,10 @@ int main ()
 
         cout << fixed << setprecision(2);
         cout << "===CAR AND ROAD CONTROL==="
-            << "\nUP = throttle, SPACE = brake, Q = quit, E = Engine ON/OFF, R - Refuel 1/2/3 - Consumption model Normal/Eco/Sport"
+            << "\nUP = throttle, SPACE = brake, Q = quit, E = Engine ON/OFF, R - Refuel 8/9/0 - Consumption model Normal/Eco/Sport"
             << "\nA - GearUp, Z - GearDown, M - ShiftPolicy[Manual/Auto]"
-            << "\nI - Normal Road, O - Water Road, P - Snow Road, B - ABS ON/OFF"
-            << "\n[ - Grade Up, ] - Grade Down"
+            << "\n1 - Asphalt Road, 2 - Gravel Road, 3 - Ice Road, B - ABS ON/OFF"
+            << "\n[ - Grade Up, ] - Grade Down, Min grade = -30/Max grade = 30"
             << "\n\n===CAR INFORMATION==="
             << "\nSpeed:" << Audi.get_CarSpeed() * 3.6 << " km/h " << "  Throttle: " << Audi.get_CatThrottle() << "  Brake= " << Audi.get_CarBrake()
             << " Engine: " << setw(4) <<(Audi.get_Engine().Engine_is_On() ? "ON" : "OFF")
@@ -223,11 +223,13 @@ int main ()
             << "\n\nCurrent gear: " << Audi.get_Car_Transmission().get_Current_Gear()
             << "\nRPM: " << Audi.get_Car_Transmission().get_RPM()
             << "\nShiftPolicy transmission: " << setw(7) << Audi.get_Car_Transmission().Check_ShiftPolicy()
-            << "\n\nABS: " << setw(4) << Audi.ABS_info() << " TCS: " << setw(4) << Audi.TCS_info()
-            << "\nActual road: " << setw(7) << Audi.get_Environment().get_surface().name() << " , Actual grade: "<< Audi.get_Environment().get_grade_Percent();
-            //<< flush;
+            << "\n\nABS: " << setw(4) << Audi.ABS_info() << " TCS: " << setw(4) << Audi.TCS_info();
         if (Audi.get_ABS_Enable()) cout<<"\nABS is Enable";
         else cout<<"\nABS is Unable";
+        cout <<"\nActual road: " << setw(7) << Audi.get_Environment().get_surface().name() << " , Actual grade: "<< Audi.get_Environment().get_grade_Percent()
+            << " , wind: " << Audi.get_Environment().get_wind();
+            //<< flush;
+
 
         cout << "\n\n===TEST INFORMATION===" 
             << "\nJ - Test reset, K - Start/Stop test";

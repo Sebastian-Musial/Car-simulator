@@ -305,13 +305,14 @@ class Dashboard {
 
 class Car {
     private:
+        Environment env;
         TripComputer Car_TripComputer;
         FuelTank Car_FuelTank;
         Brake Car_Brake;
         Engine Car_Engine;
         Transmission Car_Transmission;
         Dashboard Car_Dashboard;
-        Environment env;
+
 
         const double MAX_SPEED_MS = 50.0; //[M/S] -> 50 m/s * 3.6 = 180 km/h. Mnozenie przez 3.6 w celu uzyskania km/h
         const int MASS_KG = 1000;
@@ -347,13 +348,13 @@ class Car {
         */
         //Konstruktor domyslny
         Car() 
-            : Car_TripComputer(),
+            : env (),
+              Car_TripComputer(),
               Car_FuelTank (), 
               Car_Brake (env), 
               Car_Engine (Car_FuelTank, Car_TripComputer), 
               Car_Transmission (),
-              Car_Dashboard (Car_FuelTank, Car_Engine),
-              env () {}
+              Car_Dashboard (Car_FuelTank, Car_Engine) {}
 
         //Gettery klas
         const Engine& get_Engine() const {
@@ -477,7 +478,7 @@ class Car {
             double F_Eng_cmd = 0.0;     //[N] - siła żądana 
             double F_Brake = 0.0;       //[N] - siłą wpływająca na przyśpieszenie
             double F_Brake_cmd = 0.0;   //[N] - siła żądana
-            double F_Drag = c_drag * (CarSpeed * CarSpeed); //[N] 
+            double F_Drag = c_drag * (CarSpeed - env.get_wind()) * std::abs(CarSpeed - env.get_wind()); //[N] !!Nie mylić z hamulcem ABS - Tutaj abs to funkcja z biblioteki standardowej!!
             double F_Roll = c_roll;    //[N]
             double F_Grade = MASS_KG * g * sin(env.alphaRad());
 
