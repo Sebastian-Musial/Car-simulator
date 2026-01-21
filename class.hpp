@@ -310,6 +310,7 @@ class Car {
         Engine Car_Engine;
         Transmission Car_Transmission;
         Dashboard Car_Dashboard;
+        Environment env;
 
         const double MAX_SPEED_MS = 50.0; //[M/S] -> 50 m/s * 3.6 = 180 km/h. Mnozenie przez 3.6 w celu uzyskania km/h
         const int MASS_KG = 1000;
