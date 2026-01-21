@@ -49,6 +49,9 @@ void EnableVTMode()
 
     bool Key_Test_Reset()    { return (GetAsyncKeyState('J')      & 0x0001) != 0; }  //Test czy klawisz J jest wcisniety dla resetu testu
     bool Key_Test_ON_OFF()    { return (GetAsyncKeyState('K')      & 0x0001) != 0; }  //Test czy klawisz K jest wcisniety dla ON/OFF testu
+     
+    bool Key_Grade_Up()    { return (GetAsyncKeyState(VK_OEM_4)      & 0x0001) != 0; }  //Test czy klawisz [ jest wcisniety dla dodania grade
+    bool Key_Grade_Down()    { return (GetAsyncKeyState(VK_OEM_6)      & 0x0001) != 0; }  //Test czy klawisz ] jest wcisniety dla odjęcia grade
 
 //#else   //Tutaj powinna byc instrukcja dla linux
 #endif
@@ -173,6 +176,10 @@ int main ()
         if (Key_Test_ON_OFF()) Test.Test_ON_OFF();
         if (Test.get_Test_Start())Test.Start_Test_Time(Audi.get_CarSpeed());
 
+        //Nachylenie
+        if (Key_Grade_Up()) Audi.get_Environment().Add_Grade_Percent(5.0);
+        if (Key_Grade_Down()) Audi.get_Environment().Add_Grade_Percent(-5.0);
+
         //Wypisanie tekstu z informacjami w czasie rzeczywistym
         /*printf("\rspeed=%6.2f km/h   throttle=%.2f   brake=%.2f   fuel=%.2f L   engine=%s   ",
                     Audi.get_CarSpeed() * 3.6 , Audi.get_CatThrottle(), Audi.get_CarBrake(),    //Wystepuje tutaj mnozenie przez 3.6 w celu zamiany jednostki m/s na km/h
@@ -191,15 +198,16 @@ int main ()
         
         //czyszczenie ekranu bez miogotania i bez pozostawiania blednych liter na koncu wyrazu
         //Potencjalny BUG jeżeli tekstu będzie więcej niż wielkość startowego okna - trzeba uważać
-        cout << "\x1b[" << 26 << "A";
-        for(int i=0;i<26;i++) cout << "\x1b[2K\n";
-        cout << "\x1b[" << 26 << "A";
+        cout << "\x1b[" << 27 << "A";
+        for(int i=0;i<27;i++) cout << "\x1b[2K\n";
+        cout << "\x1b[" << 27 << "A";
 
         cout << fixed << setprecision(2);
         cout << "===CAR AND ROAD CONTROL==="
             << "\nUP = throttle, SPACE = brake, Q = quit, E = Engine ON/OFF, R - Refuel 1/2/3 - Consumption model Normal/Eco/Sport"
             << "\nA - GearUp, Z - GearDown, M - ShiftPolicy[Manual/Auto]"
             << "\nI - Normal Road, O - Water Road, P - Snow Road, B - ABS ON/OFF"
+            << "\n[ - Grade Up, ] - Grade Down"
             << "\n\n===CAR INFORMATION==="
             << "\nSpeed:" << Audi.get_CarSpeed() * 3.6 << " km/h " << "  Throttle: " << Audi.get_CatThrottle() << "  Brake= " << Audi.get_CarBrake()
             << " Engine: " << setw(4) <<(Audi.get_Engine().Engine_is_On() ? "ON" : "OFF")
@@ -212,7 +220,7 @@ int main ()
             << "\nRPM: " << Audi.get_Car_Transmission().get_RPM()
             << "\nShiftPolicy transmission: " << setw(7) << Audi.get_Car_Transmission().Check_ShiftPolicy()
             << "\n\nABS: " << setw(4) << Audi.ABS_info() << " TCS: " << setw(4) << Audi.TCS_info()
-            << "\nActual road: " << setw(7) << Road_Name;
+            << "\nActual road: " << setw(7) << Road_Name << " , Actual grade: "<< Audi.get_Environment().get_grade_Percent();
             //<< flush;
         if (Audi.get_ABS_Enable()) cout<<"\nABS is Enable";
         else cout<<"\nABS is Unable";

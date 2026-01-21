@@ -351,7 +351,8 @@ class Car {
               Car_Brake (), 
               Car_Engine (Car_FuelTank, Car_TripComputer), 
               Car_Transmission (),
-              Car_Dashboard (Car_FuelTank, Car_Engine) {}
+              Car_Dashboard (Car_FuelTank, Car_Engine),
+              env () {}
 
         //Gettery klas
         const Engine& get_Engine() const {
@@ -384,6 +385,12 @@ class Car {
         const TripComputer& get_Trip_Computer() const {
             return Car_TripComputer;
         }
+        Environment& get_Environment() {
+            return env;
+        }
+        /*const Environment& get_Environment() const {
+            return env;
+        }*/
 
         //Gettery zmiennych
         double get_CarSpeed() const {   //Zwracana jednostka to [m/s], w celu uzyskania [km/h] wymagane mnozenie przez 3.6

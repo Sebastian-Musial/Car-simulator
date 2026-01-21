@@ -4,10 +4,9 @@
 #include <memory>
 #include "SurfaceModel.hpp"
 
-
-double mu = 0.9;                
-const double g = 9.81;
-const double DT = 0.02;
+extern double mu;
+extern double g;
+extern const double DT;
 
 class Environment {
     private:
@@ -22,7 +21,7 @@ class Environment {
                 surface_mu(std::make_unique<AsphaltSurface>()) {}
 
         //Get
-        double gradePercent() const {return grade_percent;}
+        double get_grade_Percent() const {return grade_percent;}
 
         //Set
         void set_Surface(std::unique_ptr<SurfaceModel> new_s) {surface_mu = std::move(new_s);} //Wymagane przerzucanie jakiegoś make_unique z nową drogą 
@@ -38,7 +37,7 @@ class Environment {
             mu = surface_mu->mu();
         }
 
-        void Add_Grade_Percent(double N_Percent) {grade_percent += N_Percent;}
+        void Add_Grade_Percent(double N_Percent) {grade_percent = grade_percent + N_Percent;}
 
         double alphaRad() const {
             return std::atan(grade_percent / 100.0);
