@@ -349,19 +349,19 @@ class Dashboard : public ICarObserver {
         void screen() {
             //czyszczenie ekranu bez miogotania i bez pozostawiania blednych liter na koncu wyrazu
             //Potencjalny BUG jeżeli tekstu będzie więcej niż wielkość startowego okna - trzeba uważać
-            cout << "\x1b[" << 27 << "A";
-            for(int i=0;i<27;i++) cout << "\x1b[2K\n";
-            cout << "\x1b[" << 27 << "A";
+            cout << "\x1b[" << 28 << "A";
+            for(int i=0;i<28;i++) cout << "\x1b[2K\n";
+            cout << "\x1b[" << 28 << "A";
 
             cout << fixed << setprecision(2);
-            if (State.paused) cout << "\nPAUSE\n";
-            cout << "===CAR AND ROAD CONTROL==="
-                << "\nUP = throttle, SPACE = brake, Q = quit, E = Engine ON/OFF, R - Refuel 8/9/0 - Consumption model Normal/Eco/Sport"
+            cout << "===CAR AND ROAD CONTROL=== ";             
+            if (State.paused) cout << " PAUSE  ===";
+            cout << "\nUP = throttle, SPACE = brake, Q = quit, E = Engine ON/OFF, R - Refuel 8/9/0 - Consumption model Normal/Eco/Sport"
                 << "\nA - GearUp, Z - GearDown, M - ShiftPolicy[Manual/Auto]"
                 << "\n1 - Asphalt Road, 2 - Gravel Road, 3 - Ice Road, B - ABS ON/OFF"
                 << "\n[ - Grade Up, ] - Grade Down, Min grade = -30/Max grade = 30"
-                << "\n\n===CAR INFORMATION==="
-                << "\nSpeed:" << State.speedKmh /* * 3.6*/ << " km/h " << "  Throttle: " << State.throttle << "  Brake= " << State.brake
+                << "\n\n===CAR INFORMATION=== ";
+            cout << "\nSpeed:" << State.speedKmh /* * 3.6*/ << " km/h " << "  Throttle: " << State.throttle << "  Brake= " << State.brake
                 << " Engine: " << setw(4) <<(State.engineOn ? "ON" : "OFF")
                 
                 << "\nFuel: " << State.fuelL << " L " <<  FuelBar(State.fuelL, State.fuelCapL, 24) << " " << static_cast<int>(std::lround(std::clamp(State.fuelL / std::max(1.0, State.fuelCapL), 0.0, 1.0) * 100.0)) << "%"
