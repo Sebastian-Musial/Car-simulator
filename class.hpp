@@ -6,14 +6,58 @@
 #include <vector>
 #include <string>
 #include <cmath>
+#include <iomanip>
 #include "Engine_mechanics.hpp"
 #include "ShiftPolicy_Transmission.hpp"
 #include "Physics.hpp"
+
 
 using namespace std;
 
 class Car;
 
+//Wzorzec OBSERVER
+struct CarState
+{
+    double speedKmh = 0.0;
+    double throttle = 0.0;
+    double brake = 0.0;
+
+    double fuelL = 0.0;
+    double fuelCapL = 1.0;
+
+    bool engineOn = false;
+    string consumptionMode; // Normal/Eco/Sport/Off
+
+    int gear = 0;
+    double rpm = 0.0;
+    string shiftPolicy;
+
+    bool absEnable = false;
+    bool absActive = false;
+    bool tcsActive = false;
+
+    string road;
+    double gradePct = 0.0;
+    double wind = 0.0;
+
+    //Trip PC
+    double workTime = 0.0;
+    double consMoment = 0.0;
+    double consAvg = 0.0;
+    double distance = 0.0;
+
+    bool paused = false;
+};
+
+class ICarObserver
+{
+    public:
+        virtual ~ICarObserver() = default;
+        virtual void State_Changed(const CarState& New) = 0;
+};
+
+//Klasy samochodu
 class FuelTank {
     private:
         double FuelTank_Level;
@@ -30,6 +74,9 @@ class FuelTank {
         //Getter
         double get_FuelTank_Level() const {
             return this->FuelTank_Level;
+        }
+        double get_FuelTank_Capacity() const {
+            return this->FuelTank_Capacity;
         }
 
         //Setter
@@ -63,11 +110,12 @@ class Brake {
         //TCS
         double tcsK = 0.95;             //Ile limitu przyczepności wykorzystuje w momencie ruszania - limit przyczepności jaki jest przekazywany do napędu to 95% limitu
 
+        Environment& env;
+
     public:
         //Konstruktor
-        /*Brake(int C_Brake_Power)
-            : Brake_Power(C_Brake_Power) {}*/
-
+        Brake(Environment& C_env)
+            : env(C_env) {}
         //Konstruktor domyslny
         /*Brake() { Brake_Power = 30; }*/
 
@@ -279,17 +327,65 @@ class Engine {
         }
 };
 
-class Dashboard {
+class Dashboard : public ICarObserver {
     private:
-        FuelTank& FuelTank_Ref;
-        Engine& Engine_Ref;
+        CarState State{};
 
     public:
-        //Konstruktor
-        Dashboard(FuelTank& C_FuelTank_Ref, Engine& C_Engine_Ref)
-            : FuelTank_Ref(C_FuelTank_Ref), Engine_Ref(C_Engine_Ref) {}
+        Dashboard() = default;
 
         //Metody
+        void State_Changed(const CarState& New) override {
+            State = New;
+        }
+
+        string FuelBar(double fuel, double cap, int width = 20) {
+            if (cap <= 0) cap = 1;
+            double ratio = std::clamp(fuel / cap, 0.0, 1.0);
+            int filled = (int)std::lround(ratio * width);
+            filled = std::clamp(filled, 0, width);
+            return "[" + std::string(filled, '#') + std::string(width - filled, '.') + "]";
+        }
+        void screen() {
+            //czyszczenie ekranu bez miogotania i bez pozostawiania blednych liter na koncu wyrazu
+            //Potencjalny BUG jeżeli tekstu będzie więcej niż wielkość startowego okna - trzeba uważać
+            cout << "\x1b[" << 28 << "A";
+            for(int i=0;i<28;i++) cout << "\x1b[2K\n";
+            cout << "\x1b[" << 28 << "A";
+
+            cout << fixed << setprecision(2);
+            cout << "===CAR AND ROAD CONTROL=== ";             
+            if (State.paused) cout << " PAUSE  ===";
+            cout << "\nUP = throttle, SPACE = brake, Q = quit, E = Engine ON/OFF, R - Refuel 8/9/0 - Consumption model Normal/Eco/Sport"
+                << "\nA - GearUp, Z - GearDown, M - ShiftPolicy[Manual/Auto]"
+                << "\n1 - Asphalt Road, 2 - Gravel Road, 3 - Ice Road, B - ABS ON/OFF"
+                << "\n[ - Grade Up, ] - Grade Down, Min grade = -30/Max grade = 30"
+                << "\nP - Pause, BackSpace - Reset, F12 - Screenshot {PNG + CSV}"
+                << "\n\n===CAR INFORMATION=== ";
+            cout << "\nSpeed:" << State.speedKmh /* * 3.6*/ << " km/h " << "  Throttle: " << State.throttle << "  Brake= " << State.brake
+                << " Engine: " << setw(4) <<(State.engineOn ? "ON" : "OFF")
+                
+                << "\nFuel: " << State.fuelL << " L " <<  FuelBar(State.fuelL, State.fuelCapL, 24) << " " << static_cast<int>(std::lround(std::clamp(State.fuelL / std::max(1.0, State.fuelCapL), 0.0, 1.0) * 100.0)) << "%"
+                << " Consumption Fuel Model: "<< setw(7) << State.consumptionMode
+
+                << "\n\nEngine Work time: " << State.workTime
+                << "\nMomentary Fuel Consumption: " << State.consMoment
+                << "\nAverage Fuel Consumption: " << State.consAvg
+                << "\nDistance: " << State.distance
+                << "\n\nCurrent gear: " << State.gear
+                << "\nRPM: " << State.rpm
+                << "\nShiftPolicy transmission: " << setw(7) << State.shiftPolicy
+
+                << "\n\nABS: " << setw(4) << (State.absActive ? "ON" : "OFF") << " TCS: " << setw(4) << (State.tcsActive ? "ON" : "OFF");
+
+            if (State.absEnable) cout<<"\nABS is Enable";
+            else cout<<"\nABS is Unable";
+
+            cout <<"\nActual road: " << setw(7) << State.road << " , Actual grade: "<< State.gradePct
+                << " , wind: " << State.wind;
+                //<< flush;
+        }
+
         /*void Car_Information() {
             cout<<"<--------Informacje o aucie-------->"<<endl;
             //Silnik
@@ -304,6 +400,7 @@ class Dashboard {
 
 class Car {
     private:
+        Environment env;
         TripComputer Car_TripComputer;
         FuelTank Car_FuelTank;
         Brake Car_Brake;
@@ -327,6 +424,8 @@ class Car {
         bool TCS_Active = false;
         bool ABS_Active = false;
         bool ABS_Enable = true;
+
+        bool Paused = false;
         
         //Ogranicznik szybkosci zmian wartosci
         static double Rate_Limiter(double Current_Value, double Target_Value, double Max_Value_For_Rate, double DT) { //DT - Krok czasu, Max_Value_For_Tate = maksymalna wartosc/predkosc na sekunde/klatke
@@ -338,6 +437,40 @@ class Car {
             return clamp(Current_Value, 0.0, 1.0);  //Przycina wartosci do przedzialu [0.0, 1.0] 
         } 
 
+        CarState Update_State() {
+            CarState s;
+            s.speedKmh = CarSpeed * 3.6;
+            s.throttle = CarThrottle;
+            s.brake    = CarBrake;
+
+            s.fuelL    = Car_FuelTank.get_FuelTank_Level();
+            s.fuelCapL = Car_FuelTank.get_FuelTank_Capacity();
+
+            s.engineOn = Car_Engine.Engine_is_On();
+            s.consumptionMode = Car_Engine.Check_Consumption();
+
+            s.gear = Car_Transmission.get_Current_Gear();
+            s.rpm  = Car_Transmission.get_RPM();
+            s.shiftPolicy = Car_Transmission.Check_ShiftPolicy();
+
+            s.absEnable = ABS_Enable;
+            s.absActive = ABS_Active;
+            s.tcsActive = TCS_Active;
+
+            s.road = env.get_surface().name();
+            s.gradePct = env.get_grade_Percent();
+            s.wind = env.get_wind();
+
+            s.workTime = Car_TripComputer.get_Work_Time();
+            s.consMoment = Car_TripComputer.get_Momentary_Fuel_Consumption_100KM();
+            s.consAvg = Car_TripComputer.get_Average_Fuel_Consumption();
+            s.distance = Car_TripComputer.get_Distance();
+
+            s.paused = Paused;
+
+            return s;
+        }
+
     public:
         /*//Konstruktor 
         Car(FuelTank& C_Car_FuelTank, Brake& C_Car_Brake, Engine& C_Car_Engine, Transmission Car_Transmission, Dashboard& C_Car_Dashboard) 
@@ -345,12 +478,19 @@ class Car {
         */
         //Konstruktor domyslny
         Car() 
-            : Car_TripComputer(),
+            : env (),
+              Car_TripComputer(),
               Car_FuelTank (), 
-              Car_Brake (), 
+              Car_Brake (env), 
               Car_Engine (Car_FuelTank, Car_TripComputer), 
               Car_Transmission (),
-              Car_Dashboard (Car_FuelTank, Car_Engine) {}
+              Car_Dashboard ()
+            {}
+
+        //OBSERVER
+        void UpdateObserver() {
+            Car_Dashboard.State_Changed(Update_State());
+        }
 
         //Gettery klas
         const Engine& get_Engine() const {
@@ -377,11 +517,20 @@ class Car {
         Transmission& get_Car_Transmission() {
             return Car_Transmission;
         }    
-        Dashboard get_Car_Dashboard() const {
-            return this->Car_Dashboard;
+        Dashboard& get_Car_Dashboard() {
+            return Car_Dashboard;
+        }
+        const Dashboard& get_Car_Dashboard() const { 
+            return Car_Dashboard; 
         }
         const TripComputer& get_Trip_Computer() const {
             return Car_TripComputer;
+        }
+        Environment& get_Environment() {
+            return env;
+        }
+        const Environment& get_Environment() const {
+            return env;
         }
 
         //Gettery zmiennych
@@ -406,14 +555,22 @@ class Car {
         bool get_ABS_Enable() const {
             return this->ABS_Enable;
         }
+        bool get_Paused() const {
+            return this->Paused;
+        }
+
+        //Getter struktury
+        CarState Get_State() {
+            return Update_State();
+        }
 
         //Settery klas
         void set_FuelTank(FuelTank S_FuelTank) {
             Car_FuelTank = S_FuelTank;
         }       
-        void set_Brake(Brake S_Brake) {
+        /*void set_Brake(Brake S_Brake) {
             Car_Brake = S_Brake;
-        }        
+        }*/        
         /*void set_Transmission(Transmission S_Transmission) {
             Car_Transmission = S_Transmission;
         }*/   
@@ -430,6 +587,9 @@ class Car {
         }
         void set_ABS_Active(bool S_ABS)  {
             ABS_Active = S_ABS;
+        }
+        void set_Paused(bool S_Paused) {
+            Paused = S_Paused;
         }
        
         //Metody
@@ -456,10 +616,10 @@ class Car {
             if (Car_Transmission.isAuto()) Car_Transmission.Update_Shift(G_Shift::Up); //Ignorowanie G_Shift bo automat
             double Actual_Engine_Moment= Car_Engine.Engine_Moment(Car_Transmission.get_RPM(), CarThrottle);
 
-            //Limit przyczepnosci - dla ABS i TCS
-            // F_max = mu * m * g
-            //Maksymalna siła = współczynnik przyczepności * masa auta * grawitacja
-            double F_max = std::max(0.0, mu) * MASS_KG * g;
+            //Limit przyczepnosci - dla ABS i TCS wraz z aktualizacją o kąt nachylenia drogi
+            // F_max = mu * m * g * cos(alpha)
+            //Maksymalna siła = współczynnik przyczepności * masa auta * grawitacja * cos(alpha)
+            double F_max = std::max(0.0, env.get_surface().mu()) * MASS_KG * g * cos(env.alphaRad());
 
             //Mechanika przyspieszenia:  Przyspieszenie = Throttle - Brake
             double Acceleration = 0.0;
@@ -468,9 +628,9 @@ class Car {
             double F_Eng_cmd = 0.0;     //[N] - siła żądana 
             double F_Brake = 0.0;       //[N] - siłą wpływająca na przyśpieszenie
             double F_Brake_cmd = 0.0;   //[N] - siła żądana
-            double F_Drag = c_drag * (CarSpeed * CarSpeed); //[N] 
+            double F_Drag = c_drag * (CarSpeed - env.get_wind()) * std::abs(CarSpeed - env.get_wind()); //[N] !!Nie mylić z hamulcem ABS - Tutaj abs to funkcja z biblioteki standardowej!!
             double F_Roll = c_roll;    //[N]
-
+            double F_Grade = MASS_KG * g * sin(env.alphaRad());
 
             //F_Eng = CarThrottle * F_Eng_MAX;  //Tworzymy moc napedu
             double wheel_Torque = Actual_Engine_Moment * Car_Transmission.Total_Ratio();    //Zamiana momentu sinlinka na siłę napędową. wheel_Torque - moment obrotowy kola
@@ -500,7 +660,7 @@ class Car {
             F_Eng = F_Eng_cmd; //Wymaga testu
             get_Car_Brake().TCS(F_max,F_Eng_cmd ,F_Eng, *this);
             
-            Acceleration = ((F_Eng - F_Brake - F_Drag - F_Roll) / MASS_KG); //[m/s^2]
+            Acceleration = ((F_Eng - F_Brake - F_Drag - F_Roll - F_Grade) / MASS_KG); //[m/s^2]
 
             /* Poprzednia mechanika zmiany predkosci
             CarSpeed = max(0.0, CarSpeed + (Acceleration * DT));    //Funkcja wybierajaca wieksza wartosc. Zabezpieczenie przed ujemna predkoscia
@@ -546,7 +706,7 @@ inline void  Brake::ABS(Car& ABS_Car, double& F_Brake, double& F_Brake_cmd, doub
 
     //Decel_lock to maksymalne możliwe opóźnienie [Decel]. Jeżeli opóźnienie [Decel] będzie większe od Decel_lock to auto może wpaść w poslizg - ryzyko blokady kół
     //Wartość 0.9 bierze się z tego że chcemy dać 10% marginesu bezpieczeńśtwa. ABS reaguje wcześniej zanim osiągniemy maksymalną wartość limitu tarcia i wpadniemy w poślizg
-    const double decel_lock = 0.9 * max(0.0, mu) * g;
+    const double decel_lock = 0.9 * max(0.0, env.get_surface().mu()) * g;
 
     //NearLimit zapobiega aktywacji ABS przy lekkim hamowaniu. Sprawdzany jest warunek czy żądana siła hamowania jest wyższa od (maksymalnej siły hamowania [granicy przyczepności] - 5%)
     const bool nearLimit = (F_max > 0.0) ? (F_Brake_cmd > 0.95 * F_max) : false;

@@ -1,5 +1,7 @@
 #include <iostream>
 #include <string>
+#include <algorithm>
+#include <cmath>
 #include <chrono>   //Biblioteka do obsługi czasu  potrzebne dla pomiaru czasu i jednostek czasu 
 #include <thread>   //Biblioteka do obslugi wielowatkowosci i zarzadzania czasem w aplikacji - zarządza wątkami np. w sleep_for aby uspic petle
 #include <cstdio>   //Biblioteka dla wypisywania danych np, printf
@@ -8,6 +10,13 @@
 #include "Physics.hpp"
 #include "Test.cpp"
 #include <iomanip>
+#include <fstream>
+#include <sstream>
+#include <memory>
+#include <ctime>
+#include <new>
+#include <gdiplus.h>    //Dla PNG win
+#pragma comment(lib, "gdiplus.lib") //MinGW/G++ ignoruje tą linijke kodu i należy samodzielnie linkować ręcznie. Do komendy z kompilacją należy dodać: -o app.exe -lgdiplus -lgdi32 -lole32 -luuid
 
 using namespace std;
 
@@ -34,25 +43,156 @@ void EnableVTMode()
     bool Key_Engine()   { return (GetAsyncKeyState('E')      & 0x0001) != 0; }  //Test czy klawisz E jest wcisniety dla Engine
     bool Key_Refuel()   { return (GetAsyncKeyState('R')      & 0x0001) != 0; }  //Test czy klawisz R jest wcisniety dla Engine
 
-    bool Key_Consume_Normal()   { return (GetAsyncKeyState('1')      & 0x0001) != 0; }  //Test czy klawisz R jest wcisniety dla Engine
-    bool Key_Consume_Eco()      { return (GetAsyncKeyState('2')      & 0x0001) != 0; }  //Test czy klawisz R jest wcisniety dla Engine
-    bool Key_Consume_Sport()    { return (GetAsyncKeyState('3')      & 0x0001) != 0; }  //Test czy klawisz R jest wcisniety dla Engine
+    bool Key_Consume_Normal()   { return (GetAsyncKeyState('8')      & 0x0001) != 0; }  //Test czy klawisz 8 jest wcisniety dla modelu spalania normal
+    bool Key_Consume_Eco()      { return (GetAsyncKeyState('9')      & 0x0001) != 0; }  //Test czy klawisz 9 jest wcisniety dla modelu spalania eco
+    bool Key_Consume_Sport()    { return (GetAsyncKeyState('0')      & 0x0001) != 0; }  //Test czy klawisz 0 jest wcisniety dla modelu spalania sport
 
     bool Key_Gear_Up()   { return (GetAsyncKeyState('A')      & 0x0001) != 0; }  //Test czy klawisz A jest wcisniety dla zwiększenia biegu 
     bool Key_Gear_Down()   { return (GetAsyncKeyState('Z')      & 0x0001) != 0; }  //Test czy klawisz Z jest wcisniety dla zmniejszenia biegu
     bool Key_ShiftPolicy_Transmission()   { return (GetAsyncKeyState('M')      & 0x0001) != 0; }  //Test czy klawisz M jest wcisniety dla zmiany trbu manual/auto 
 
     bool Key_ABS_Enable()   { return (GetAsyncKeyState('B')      & 0x0001) != 0; }  //Test czy klawisz B jest wcisniety dla dostępności ABS w aucie
-    bool Key_Normal_Road()   { return (GetAsyncKeyState('I')      & 0x0001) != 0; }  //Test czy klawisz I jest wcisniety dla zmiany typu drogi 
-    bool Key_Water_Road()      { return (GetAsyncKeyState('O')      & 0x0001) != 0; }  //Test czy klawisz O jest wcisniety dla zmiany typu drogi 
-    bool Key_Snow_Road()    { return (GetAsyncKeyState('P')      & 0x0001) != 0; }  //Test czy klawisz P jest wcisniety dla zmiany typu drogi 
+    bool Key_Asphalt_Road()   { return (GetAsyncKeyState('1')      & 0x0001) != 0; }  //Test czy klawisz 1 jest wcisniety dla zmiany typu drogi 
+    bool Key_Gravel_Road()      { return (GetAsyncKeyState('2')      & 0x0001) != 0; }  //Test czy klawisz 2 jest wcisniety dla zmiany typu drogi 
+    bool Key_Ice_Road()    { return (GetAsyncKeyState('3')      & 0x0001) != 0; }  //Test czy klawisz 3 jest wcisniety dla zmiany typu drogi 
 
     bool Key_Test_Reset()    { return (GetAsyncKeyState('J')      & 0x0001) != 0; }  //Test czy klawisz J jest wcisniety dla resetu testu
     bool Key_Test_ON_OFF()    { return (GetAsyncKeyState('K')      & 0x0001) != 0; }  //Test czy klawisz K jest wcisniety dla ON/OFF testu
+     
+    bool Key_Grade_Up()    { return (GetAsyncKeyState(VK_OEM_4)      & 0x0001) != 0; }  //Test czy klawisz [ jest wcisniety dla dodania grade
+    bool Key_Grade_Down()    { return (GetAsyncKeyState(VK_OEM_6)      & 0x0001) != 0; }  //Test czy klawisz ] jest wcisniety dla odjęcia grade
+
+    bool Key_Pause()   { return (GetAsyncKeyState('P')      & 0x0001) != 0; }   //Test czy klawisz P jest wcisniety dla pause
+    bool Key_Reset()   { return (GetAsyncKeyState(VK_BACK)  & 0x0001) != 0; }   //Test czy klawisz Bakspace jest wcisniety dla resetu stanu programu
+    bool Key_ScreenShot()    { return (GetAsyncKeyState(VK_F12)   & 0x0001) != 0; } //Test czy klawisz F12 jest wcisniety dla zrzutu ekranu PNG i CSV
 
 //#else   //Tutaj powinna byc instrukcja dla linux
 #endif
+/*#########*/
+// ===== Timestamp =====
+static std::string TimestampNow()
+{
+    using namespace std::chrono;
+    auto now = system_clock::now();
+    std::time_t t = system_clock::to_time_t(now);
 
+    std::tm tm{};
+#ifdef _WIN32
+    localtime_s(&tm, &t);
+#else
+    tm = *std::localtime(&t);
+#endif
+
+    std::ostringstream oss;
+    oss << std::put_time(&tm, "%Y-%m-%d_%H-%M-%S");
+    return oss.str();
+}
+
+// ===== CSV Snapshot =====
+static void SaveStateCSV(const CarState& s, const std::string& filename)
+{
+    std::ofstream f(filename);
+    if (!f) return;
+
+    // header
+    f << "timestamp,paused,speedKmh,throttle,brake,fuelL,fuelCapL,engineOn,consumptionMode,gear,rpm,shiftPolicy,"
+         "absEnable,absActive,tcsActive,road,gradePct,wind,workTime,consMoment,consAvg,distance\n";
+
+    // row
+    f << TimestampNow() << ","
+      << (s.paused ? 1 : 0) << ","
+      << s.speedKmh << ","
+      << s.throttle << ","
+      << s.brake << ","
+      << s.fuelL << ","
+      << s.fuelCapL << ","
+      << (s.engineOn ? 1 : 0) << ","
+      << s.consumptionMode << ","
+      << s.gear << ","
+      << s.rpm << ","
+      << s.shiftPolicy << ","
+      << (s.absEnable ? 1 : 0) << ","
+      << (s.absActive ? 1 : 0) << ","
+      << (s.tcsActive ? 1 : 0) << ","
+      << s.road << ","
+      << s.gradePct << ","
+      << s.wind << ","
+      << s.workTime << ","
+      << s.consMoment << ","
+      << s.consAvg << ","
+      << s.distance << "\n";
+}
+
+#ifdef _WIN32
+// ===== GDI+ init/shutdown =====
+struct GdiplusInit
+{
+    ULONG_PTR token = 0;
+    GdiplusInit()
+    {
+        Gdiplus::GdiplusStartupInput input;
+        Gdiplus::GdiplusStartup(&token, &input, nullptr);
+    }
+    ~GdiplusInit()
+    {
+        if (token) Gdiplus::GdiplusShutdown(token);
+    }
+};
+
+static int GetEncoderClsid(const WCHAR* format, CLSID* pClsid)
+{
+    UINT num = 0, size = 0;
+    Gdiplus::GetImageEncodersSize(&num, &size);
+    if (size == 0) return -1;
+
+    std::unique_ptr<BYTE[]> buf(new BYTE[size]);
+    auto* pInfo = reinterpret_cast<Gdiplus::ImageCodecInfo*>(buf.get());
+    Gdiplus::GetImageEncoders(num, size, pInfo);
+
+    for (UINT i = 0; i < num; ++i)
+    {
+        if (wcscmp(pInfo[i].MimeType, format) == 0)
+        {
+            *pClsid = pInfo[i].Clsid;
+            return (int)i;
+        }
+    }
+    return -1;
+}
+
+// ===== PNG Screenshot of console window =====
+static bool SaveConsolePNG(const std::wstring& filename)
+{
+    HWND hwnd = GetConsoleWindow();
+    if (!hwnd) return false;
+
+    RECT rc{};
+    GetClientRect(hwnd, &rc);
+    int w = rc.right - rc.left;
+    int h = rc.bottom - rc.top;
+    if (w <= 0 || h <= 0) return false;
+
+    HDC hdcWindow = GetDC(hwnd);
+    HDC hdcMem = CreateCompatibleDC(hdcWindow);
+    HBITMAP hbmp = CreateCompatibleBitmap(hdcWindow, w, h);
+    HGDIOBJ old = SelectObject(hdcMem, hbmp);
+
+    BitBlt(hdcMem, 0, 0, w, h, hdcWindow, 0, 0, SRCCOPY);
+
+    SelectObject(hdcMem, old);
+    DeleteDC(hdcMem);
+    ReleaseDC(hwnd, hdcWindow);
+
+    Gdiplus::Bitmap bmp(hbmp, nullptr);
+    DeleteObject(hbmp);
+
+    CLSID clsid{};
+    if (GetEncoderClsid(L"image/png", &clsid) < 0) return false;
+
+    return bmp.Save(filename.c_str(), &clsid, nullptr) == Gdiplus::Ok;
+}
+#endif
+/*#########*/
 double position;
 int Choice; //Zmienna z ktorej bede korzystal do wyborow uzytkownika typu tak/nie
 //enum class Test_X {off, on, first_time};    //Zmienna typu wyliczeniowego do weryfikacji stanu danego testu
@@ -70,7 +210,10 @@ int main ()
     cout << "\x1b[2J\x1b[H"; // wyczyść ekran + kursor do (0,0)
 
     Car Audi;
-
+    bool paused = false;
+    #ifdef _WIN32
+    GdiplusInit gdip; //init GDI+ dla PNG
+    #endif
     /*    cout << "Czy chcesz uruchomic test po jakiej odleglosci auto rozpedzon do 50 km/h sie zatrzyma?\n1 - Tak / 2 - Nie" << endl;
         cout << "Dokonaj wyboru wpisujac cyfre a nastepnie naciskajac enter: ";
         cin >> Choice;
@@ -87,7 +230,21 @@ int main ()
     */
     while (true) {
         if (Key_Quit()) break;
+        //Pauza
+        if (Key_Pause()) {
+            paused = !paused;
+            Audi.set_Paused(paused);
+        }
+        //Reset
+        if (Key_Reset()) {
+            paused = false;
 
+            Audi.~Car();
+            new (&Audi) Car();   //Reset do stanu startowego - destruktor 
+
+            Audi.set_Paused(false);
+            Test.Reset();
+        }
         //if(Test == Test_X::on) position = TEST_STOP(Audi, DT);
 
         /*if ((Test == Test_X::on) && (Audi.get_CarSpeed() == 0.0))
@@ -116,7 +273,7 @@ int main ()
         bool Brk = Key_Brake();
 
         //if(Test != Test_X::off) 
-        Audi.Speed_Update(DT, Thr, Brk);     //Sprawdzenie czy nie dziala w tle test dla sprawdzania odleglosci
+        if (!paused) Audi.Speed_Update(DT, Thr, Brk);     //Sprawdzenie czy nie dziala w tle test dla sprawdzania odleglosci
 
         if (Key_Engine()) {
             if (Audi.get_Engine().Engine_is_On()) Audi.get_Engine().set_Engine_Off();
@@ -149,8 +306,8 @@ int main ()
             Audi.get_Car_Transmission().change_ShiftPolicy();
         }
 
-        //Zmiana typu drogi - Wymagane dla testu ABC TCS
-        if (Key_Normal_Road()) {
+        //Zmiana typu drogi - Wymagane dla testu ABC TCS #NIE AKTUALNE - STARY KOD#
+        /*if (Key_Normal_Road()) {
             mu = 0.9;
             Actual_Road = Road::Normal;
             Road_Name = "Normal";
@@ -164,15 +321,30 @@ int main ()
             mu = 0.2;
             Actual_Road = Road::Snow;
             Road_Name = "Snow";
-        }
+        }*/
+        if (Key_Asphalt_Road()) {Audi.get_Environment().set_Surface(std::make_unique<AsphaltSurface>());}
+        if (Key_Gravel_Road()) {Audi.get_Environment().set_Surface(std::make_unique<GravelSurface>());}
+        if (Key_Ice_Road()) {Audi.get_Environment().set_Surface(std::make_unique<IceSurface>());}
+
 
         //Przełącznik do uruchamiania ABS
         if (Key_ABS_Enable()) Audi.ABS_enabled_changer();
 
-        if (Key_Test_Reset()) Test.Reset();
-        if (Key_Test_ON_OFF()) Test.Test_ON_OFF();
-        if (Test.get_Test_Start())Test.Start_Test_Time(Audi.get_CarSpeed());
+        if (!paused) {
+            if (Key_Test_Reset()) Test.Reset();
+            if (Key_Test_ON_OFF()) Test.Test_ON_OFF();
+            if (Test.get_Test_Start())Test.Start_Test_Time(Audi.get_CarSpeed());
+        } else {
+            if (Key_Test_Reset()) Test.Reset();
+            if (Key_Test_ON_OFF()) Test.Test_ON_OFF();
+        }
 
+        //Nachylenie
+        if (Key_Grade_Up()) Audi.get_Environment().Add_Grade_Percent(5.0);
+        if (Key_Grade_Down()) Audi.get_Environment().Add_Grade_Percent(-5.0);
+
+        Audi.UpdateObserver();
+        Audi.get_Car_Dashboard().screen();
         //Wypisanie tekstu z informacjami w czasie rzeczywistym
         /*printf("\rspeed=%6.2f km/h   throttle=%.2f   brake=%.2f   fuel=%.2f L   engine=%s   ",
                     Audi.get_CarSpeed() * 3.6 , Audi.get_CatThrottle(), Audi.get_CarBrake(),    //Wystepuje tutaj mnozenie przez 3.6 w celu zamiany jednostki m/s na km/h
@@ -188,22 +360,24 @@ int main ()
         #else           //Czyszczenei konsoli - Nie windows, wersja linux albo mac. W obecnej chwili program dziala tylko dla windows.
         system("clear");
         #endif */  
-        
+
         //czyszczenie ekranu bez miogotania i bez pozostawiania blednych liter na koncu wyrazu
         //Potencjalny BUG jeżeli tekstu będzie więcej niż wielkość startowego okna - trzeba uważać
-        cout << "\x1b[" << 26 << "A";
-        for(int i=0;i<26;i++) cout << "\x1b[2K\n";
-        cout << "\x1b[" << 26 << "A";
+        /*cout << "\x1b[" << 27 << "A";
+        for(int i=0;i<27;i++) cout << "\x1b[2K\n";
+        cout << "\x1b[" << 27 << "A";
 
         cout << fixed << setprecision(2);
         cout << "===CAR AND ROAD CONTROL==="
-            << "\nUP = throttle, SPACE = brake, Q = quit, E = Engine ON/OFF, R - Refuel 1/2/3 - Consumption model Normal/Eco/Sport"
+            << "\nUP = throttle, SPACE = brake, Q = quit, E = Engine ON/OFF, R - Refuel 8/9/0 - Consumption model Normal/Eco/Sport"
             << "\nA - GearUp, Z - GearDown, M - ShiftPolicy[Manual/Auto]"
-            << "\nI - Normal Road, O - Water Road, P - Snow Road, B - ABS ON/OFF"
+            << "\n1 - Asphalt Road, 2 - Gravel Road, 3 - Ice Road, B - ABS ON/OFF"
+            << "\n[ - Grade Up, ] - Grade Down, Min grade = -30/Max grade = 30"
             << "\n\n===CAR INFORMATION==="
             << "\nSpeed:" << Audi.get_CarSpeed() * 3.6 << " km/h " << "  Throttle: " << Audi.get_CatThrottle() << "  Brake= " << Audi.get_CarBrake()
             << " Engine: " << setw(4) <<(Audi.get_Engine().Engine_is_On() ? "ON" : "OFF")
-            << "\nFuel: " << Audi.get_Car_FuelTank().get_FuelTank_Level() << " Consumption Fuel Model: "<< setw(7) << Audi.get_Engine().Check_Consumption()
+            << "\nFuel: " << Audi.get_Car_FuelTank().get_FuelTank_Level() << "TEST: " <<  Audi.get_Car_Dashboard().FuelBar(Audi.get_Car_FuelTank().get_FuelTank_Level(), Audi.get_Car_FuelTank().get_FuelTank_Capacity(), 24) << " " << (int)std::lround(std::clamp(Audi.get_Car_FuelTank().get_FuelTank_Level() / Audi.get_Car_FuelTank().get_FuelTank_Capacity(), 0.0, 1.0) * 100.0) << "%"
+            << " Consumption Fuel Model: "<< setw(7) << Audi.get_Engine().Check_Consumption()
             << "\n\nEngine Work time: " << Audi.get_Trip_Computer().get_Work_Time()
             << "\nMomentary Fuel Consumption: " << Audi.get_Trip_Computer().get_Momentary_Fuel_Consumption_100KM()
             << "\nAverage Fuel Consumption: " << Audi.get_Trip_Computer().get_Average_Fuel_Consumption()
@@ -211,12 +385,14 @@ int main ()
             << "\n\nCurrent gear: " << Audi.get_Car_Transmission().get_Current_Gear()
             << "\nRPM: " << Audi.get_Car_Transmission().get_RPM()
             << "\nShiftPolicy transmission: " << setw(7) << Audi.get_Car_Transmission().Check_ShiftPolicy()
-            << "\n\nABS: " << setw(4) << Audi.ABS_info() << " TCS: " << setw(4) << Audi.TCS_info()
-            << "\nActual road: " << setw(7) << Road_Name;
-            //<< flush;
+            << "\n\nABS: " << setw(4) << Audi.ABS_info() << " TCS: " << setw(4) << Audi.TCS_info();
         if (Audi.get_ABS_Enable()) cout<<"\nABS is Enable";
         else cout<<"\nABS is Unable";
+        cout <<"\nActual road: " << setw(7) << Audi.get_Environment().get_surface().name() << " , Actual grade: "<< Audi.get_Environment().get_grade_Percent()
+            << " , wind: " << Audi.get_Environment().get_wind();
+            //<< flush;*/
 
+        //TEST ZOSTAJE !!!
         cout << "\n\n===TEST INFORMATION===" 
             << "\nJ - Test reset, K - Start/Stop test";
 
@@ -225,6 +401,20 @@ int main ()
 
         cout << "\nTest time: " << Test.get_Test_Time()
             << "\nTest Distance: " << Test.get_Test_Distance() << " M";
+
+        //Dane do CSV
+        if (Key_ScreenShot()) {
+            CarState s = Audi.Get_State();
+
+            std::string base = "frame_" + TimestampNow();
+            SaveStateCSV(s, base + ".csv");
+
+        #ifdef _WIN32
+            std::wstring wname(base.begin(), base.end());
+            wname += L".png";
+            SaveConsolePNG(wname);
+        #endif
+        }
 
         this_thread::sleep_for(chrono::milliseconds(16));
     }
