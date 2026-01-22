@@ -31,6 +31,9 @@ class FuelTank {
         double get_FuelTank_Level() const {
             return this->FuelTank_Level;
         }
+        double get_FuelTank_Capacity() const {
+            return this->FuelTank_Capacity;
+        }
 
         //Setter
         void set_FuelTank_Level(double S_FuelTank_Level) {
@@ -291,6 +294,13 @@ class Dashboard {
             : FuelTank_Ref(C_FuelTank_Ref), Engine_Ref(C_Engine_Ref) {}
 
         //Metody
+        string FuelBar(double fuel, double cap, int width = 20) {
+            if (cap <= 0) cap = 1;
+            double ratio = std::clamp(fuel / cap, 0.0, 1.0);
+            int filled = (int)std::lround(ratio * width);
+            filled = std::clamp(filled, 0, width);
+            return "[" + std::string(filled, '#') + std::string(width - filled, '.') + "]";
+        }
         /*void Car_Information() {
             cout<<"<--------Informacje o aucie-------->"<<endl;
             //Silnik

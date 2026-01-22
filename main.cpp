@@ -1,5 +1,7 @@
 #include <iostream>
 #include <string>
+#include <algorithm>
+#include <cmath>
 #include <chrono>   //Biblioteka do obsługi czasu  potrzebne dla pomiaru czasu i jednostek czasu 
 #include <thread>   //Biblioteka do obslugi wielowatkowosci i zarzadzania czasem w aplikacji - zarządza wątkami np. w sleep_for aby uspic petle
 #include <cstdio>   //Biblioteka dla wypisywania danych np, printf
@@ -199,7 +201,7 @@ int main ()
         #else           //Czyszczenei konsoli - Nie windows, wersja linux albo mac. W obecnej chwili program dziala tylko dla windows.
         system("clear");
         #endif */  
-        
+
         //czyszczenie ekranu bez miogotania i bez pozostawiania blednych liter na koncu wyrazu
         //Potencjalny BUG jeżeli tekstu będzie więcej niż wielkość startowego okna - trzeba uważać
         cout << "\x1b[" << 27 << "A";
@@ -215,7 +217,8 @@ int main ()
             << "\n\n===CAR INFORMATION==="
             << "\nSpeed:" << Audi.get_CarSpeed() * 3.6 << " km/h " << "  Throttle: " << Audi.get_CatThrottle() << "  Brake= " << Audi.get_CarBrake()
             << " Engine: " << setw(4) <<(Audi.get_Engine().Engine_is_On() ? "ON" : "OFF")
-            << "\nFuel: " << Audi.get_Car_FuelTank().get_FuelTank_Level() << " Consumption Fuel Model: "<< setw(7) << Audi.get_Engine().Check_Consumption()
+            << "\nFuel: " << Audi.get_Car_FuelTank().get_FuelTank_Level() << "TEST: " <<  Audi.get_Car_Dashboard().FuelBar(Audi.get_Car_FuelTank().get_FuelTank_Level(), Audi.get_Car_FuelTank().get_FuelTank_Capacity(), 24) << " " << (int)std::lround(std::clamp(Audi.get_Car_FuelTank().get_FuelTank_Level() / Audi.get_Car_FuelTank().get_FuelTank_Capacity(), 0.0, 1.0) * 100.0) << "%"
+            << " Consumption Fuel Model: "<< setw(7) << Audi.get_Engine().Check_Consumption()
             << "\n\nEngine Work time: " << Audi.get_Trip_Computer().get_Work_Time()
             << "\nMomentary Fuel Consumption: " << Audi.get_Trip_Computer().get_Momentary_Fuel_Consumption_100KM()
             << "\nAverage Fuel Consumption: " << Audi.get_Trip_Computer().get_Average_Fuel_Consumption()
