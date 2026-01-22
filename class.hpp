@@ -46,6 +46,8 @@ struct CarState
     double consMoment = 0.0;
     double consAvg = 0.0;
     double distance = 0.0;
+
+    bool paused = false;
 };
 
 class ICarObserver
@@ -352,6 +354,7 @@ class Dashboard : public ICarObserver {
             cout << "\x1b[" << 27 << "A";
 
             cout << fixed << setprecision(2);
+            if (State.paused) cout << "\nPAUSE\n";
             cout << "===CAR AND ROAD CONTROL==="
                 << "\nUP = throttle, SPACE = brake, Q = quit, E = Engine ON/OFF, R - Refuel 8/9/0 - Consumption model Normal/Eco/Sport"
                 << "\nA - GearUp, Z - GearDown, M - ShiftPolicy[Manual/Auto]"
@@ -420,6 +423,8 @@ class Car {
         bool TCS_Active = false;
         bool ABS_Active = false;
         bool ABS_Enable = true;
+
+        bool Paused = false;
         
         //Ogranicznik szybkosci zmian wartosci
         static double Rate_Limiter(double Current_Value, double Target_Value, double Max_Value_For_Rate, double DT) { //DT - Krok czasu, Max_Value_For_Tate = maksymalna wartosc/predkosc na sekunde/klatke
@@ -459,6 +464,8 @@ class Car {
             s.consMoment = Car_TripComputer.get_Momentary_Fuel_Consumption_100KM();
             s.consAvg = Car_TripComputer.get_Average_Fuel_Consumption();
             s.distance = Car_TripComputer.get_Distance();
+
+            s.paused = Paused;
 
             return s;
         }
@@ -547,6 +554,14 @@ class Car {
         bool get_ABS_Enable() const {
             return this->ABS_Enable;
         }
+        bool get_Paused() const {
+            return this->Paused;
+        }
+
+        //Getter struktury
+        CarState Get_State() {
+            return Update_State();
+        }
 
         //Settery klas
         void set_FuelTank(FuelTank S_FuelTank) {
@@ -571,6 +586,9 @@ class Car {
         }
         void set_ABS_Active(bool S_ABS)  {
             ABS_Active = S_ABS;
+        }
+        void set_Paused(bool S_Paused) {
+            Paused = S_Paused;
         }
        
         //Metody

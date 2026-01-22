@@ -10,6 +10,10 @@
 #include "Physics.hpp"
 #include "Test.cpp"
 #include <iomanip>
+#include <fstream>
+#include <sstream>
+#include <ctime>
+#include <new>
 
 using namespace std;
 
@@ -55,6 +59,10 @@ void EnableVTMode()
     bool Key_Grade_Up()    { return (GetAsyncKeyState(VK_OEM_4)      & 0x0001) != 0; }  //Test czy klawisz [ jest wcisniety dla dodania grade
     bool Key_Grade_Down()    { return (GetAsyncKeyState(VK_OEM_6)      & 0x0001) != 0; }  //Test czy klawisz ] jest wcisniety dla odjęcia grade
 
+    bool Key_Pause()   { return (GetAsyncKeyState('P')      & 0x0001) != 0; }
+    bool Key_Reset()   { return (GetAsyncKeyState(VK_BACK)  & 0x0001) != 0; }
+    bool Key_ScreenShot()    { return (GetAsyncKeyState(VK_F12)   & 0x0001) != 0; }
+
 //#else   //Tutaj powinna byc instrukcja dla linux
 #endif
 
@@ -75,7 +83,7 @@ int main ()
     cout << "\x1b[2J\x1b[H"; // wyczyść ekran + kursor do (0,0)
 
     Car Audi;
-
+    bool paused = false;
     /*    cout << "Czy chcesz uruchomic test po jakiej odleglosci auto rozpedzon do 50 km/h sie zatrzyma?\n1 - Tak / 2 - Nie" << endl;
         cout << "Dokonaj wyboru wpisujac cyfre a nastepnie naciskajac enter: ";
         cin >> Choice;
@@ -92,7 +100,21 @@ int main ()
     */
     while (true) {
         if (Key_Quit()) break;
+        //Pauza
+        if (Key_Pause()) {
+            paused = !paused;
+            Audi.set_Paused(paused);
+        }
+        //Reset
+        if (Key_Reset()) {
+            paused = false;
 
+            Audi.~Car();
+            new (&Audi) Car();   //Reset do stanu startowego
+
+            Audi.set_Paused(false);
+            Test.Reset();
+        }
         //if(Test == Test_X::on) position = TEST_STOP(Audi, DT);
 
         /*if ((Test == Test_X::on) && (Audi.get_CarSpeed() == 0.0))
@@ -121,7 +143,7 @@ int main ()
         bool Brk = Key_Brake();
 
         //if(Test != Test_X::off) 
-        Audi.Speed_Update(DT, Thr, Brk);     //Sprawdzenie czy nie dziala w tle test dla sprawdzania odleglosci
+        if (!paused) Audi.Speed_Update(DT, Thr, Brk);     //Sprawdzenie czy nie dziala w tle test dla sprawdzania odleglosci
 
         if (Key_Engine()) {
             if (Audi.get_Engine().Engine_is_On()) Audi.get_Engine().set_Engine_Off();
@@ -178,9 +200,14 @@ int main ()
         //Przełącznik do uruchamiania ABS
         if (Key_ABS_Enable()) Audi.ABS_enabled_changer();
 
-        if (Key_Test_Reset()) Test.Reset();
-        if (Key_Test_ON_OFF()) Test.Test_ON_OFF();
-        if (Test.get_Test_Start())Test.Start_Test_Time(Audi.get_CarSpeed());
+        if (!paused) {
+            if (Key_Test_Reset()) Test.Reset();
+            if (Key_Test_ON_OFF()) Test.Test_ON_OFF();
+            if (Test.get_Test_Start())Test.Start_Test_Time(Audi.get_CarSpeed());
+        } else {
+            if (Key_Test_Reset()) Test.Reset();
+            if (Key_Test_ON_OFF()) Test.Test_ON_OFF();
+        }
 
         //Nachylenie
         if (Key_Grade_Up()) Audi.get_Environment().Add_Grade_Percent(5.0);
