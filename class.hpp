@@ -360,6 +360,7 @@ class Dashboard : public ICarObserver {
                 << "\nA - GearUp, Z - GearDown, M - ShiftPolicy[Manual/Auto]"
                 << "\n1 - Asphalt Road, 2 - Gravel Road, 3 - Ice Road, B - ABS ON/OFF"
                 << "\n[ - Grade Up, ] - Grade Down, Min grade = -30/Max grade = 30"
+                << "\nP - Pause, BackSpace - Reset, F12 - Screenshot {PNG + CSV}"
                 << "\n\n===CAR INFORMATION=== ";
             cout << "\nSpeed:" << State.speedKmh /* * 3.6*/ << " km/h " << "  Throttle: " << State.throttle << "  Brake= " << State.brake
                 << " Engine: " << setw(4) <<(State.engineOn ? "ON" : "OFF")

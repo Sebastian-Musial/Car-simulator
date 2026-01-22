@@ -12,8 +12,11 @@
 #include <iomanip>
 #include <fstream>
 #include <sstream>
+#include <memory>
 #include <ctime>
 #include <new>
+#include <gdiplus.h>    //Dla PNG win
+#pragma comment(lib, "gdiplus.lib") //MinGW/G++ ignoruje tą linijke kodu i należy samodzielnie linkować ręcznie. Do komendy z kompilacją należy dodać: -o app.exe -lgdiplus -lgdi32 -lole32 -luuid
 
 using namespace std;
 
@@ -59,13 +62,137 @@ void EnableVTMode()
     bool Key_Grade_Up()    { return (GetAsyncKeyState(VK_OEM_4)      & 0x0001) != 0; }  //Test czy klawisz [ jest wcisniety dla dodania grade
     bool Key_Grade_Down()    { return (GetAsyncKeyState(VK_OEM_6)      & 0x0001) != 0; }  //Test czy klawisz ] jest wcisniety dla odjęcia grade
 
-    bool Key_Pause()   { return (GetAsyncKeyState('P')      & 0x0001) != 0; }
-    bool Key_Reset()   { return (GetAsyncKeyState(VK_BACK)  & 0x0001) != 0; }
-    bool Key_ScreenShot()    { return (GetAsyncKeyState(VK_F12)   & 0x0001) != 0; }
+    bool Key_Pause()   { return (GetAsyncKeyState('P')      & 0x0001) != 0; }   //Test czy klawisz P jest wcisniety dla pause
+    bool Key_Reset()   { return (GetAsyncKeyState(VK_BACK)  & 0x0001) != 0; }   //Test czy klawisz Bakspace jest wcisniety dla resetu stanu programu
+    bool Key_ScreenShot()    { return (GetAsyncKeyState(VK_F12)   & 0x0001) != 0; } //Test czy klawisz F12 jest wcisniety dla zrzutu ekranu PNG i CSV
 
 //#else   //Tutaj powinna byc instrukcja dla linux
 #endif
+/*#########*/
+// ===== Timestamp =====
+static std::string TimestampNow()
+{
+    using namespace std::chrono;
+    auto now = system_clock::now();
+    std::time_t t = system_clock::to_time_t(now);
 
+    std::tm tm{};
+#ifdef _WIN32
+    localtime_s(&tm, &t);
+#else
+    tm = *std::localtime(&t);
+#endif
+
+    std::ostringstream oss;
+    oss << std::put_time(&tm, "%Y-%m-%d_%H-%M-%S");
+    return oss.str();
+}
+
+// ===== CSV Snapshot =====
+static void SaveStateCSV(const CarState& s, const std::string& filename)
+{
+    std::ofstream f(filename);
+    if (!f) return;
+
+    // header
+    f << "timestamp,paused,speedKmh,throttle,brake,fuelL,fuelCapL,engineOn,consumptionMode,gear,rpm,shiftPolicy,"
+         "absEnable,absActive,tcsActive,road,gradePct,wind,workTime,consMoment,consAvg,distance\n";
+
+    // row
+    f << TimestampNow() << ","
+      << (s.paused ? 1 : 0) << ","
+      << s.speedKmh << ","
+      << s.throttle << ","
+      << s.brake << ","
+      << s.fuelL << ","
+      << s.fuelCapL << ","
+      << (s.engineOn ? 1 : 0) << ","
+      << s.consumptionMode << ","
+      << s.gear << ","
+      << s.rpm << ","
+      << s.shiftPolicy << ","
+      << (s.absEnable ? 1 : 0) << ","
+      << (s.absActive ? 1 : 0) << ","
+      << (s.tcsActive ? 1 : 0) << ","
+      << s.road << ","
+      << s.gradePct << ","
+      << s.wind << ","
+      << s.workTime << ","
+      << s.consMoment << ","
+      << s.consAvg << ","
+      << s.distance << "\n";
+}
+
+#ifdef _WIN32
+// ===== GDI+ init/shutdown =====
+struct GdiplusInit
+{
+    ULONG_PTR token = 0;
+    GdiplusInit()
+    {
+        Gdiplus::GdiplusStartupInput input;
+        Gdiplus::GdiplusStartup(&token, &input, nullptr);
+    }
+    ~GdiplusInit()
+    {
+        if (token) Gdiplus::GdiplusShutdown(token);
+    }
+};
+
+static int GetEncoderClsid(const WCHAR* format, CLSID* pClsid)
+{
+    UINT num = 0, size = 0;
+    Gdiplus::GetImageEncodersSize(&num, &size);
+    if (size == 0) return -1;
+
+    std::unique_ptr<BYTE[]> buf(new BYTE[size]);
+    auto* pInfo = reinterpret_cast<Gdiplus::ImageCodecInfo*>(buf.get());
+    Gdiplus::GetImageEncoders(num, size, pInfo);
+
+    for (UINT i = 0; i < num; ++i)
+    {
+        if (wcscmp(pInfo[i].MimeType, format) == 0)
+        {
+            *pClsid = pInfo[i].Clsid;
+            return (int)i;
+        }
+    }
+    return -1;
+}
+
+// ===== PNG Screenshot of console window =====
+static bool SaveConsolePNG(const std::wstring& filename)
+{
+    HWND hwnd = GetConsoleWindow();
+    if (!hwnd) return false;
+
+    RECT rc{};
+    GetClientRect(hwnd, &rc);
+    int w = rc.right - rc.left;
+    int h = rc.bottom - rc.top;
+    if (w <= 0 || h <= 0) return false;
+
+    HDC hdcWindow = GetDC(hwnd);
+    HDC hdcMem = CreateCompatibleDC(hdcWindow);
+    HBITMAP hbmp = CreateCompatibleBitmap(hdcWindow, w, h);
+    HGDIOBJ old = SelectObject(hdcMem, hbmp);
+
+    BitBlt(hdcMem, 0, 0, w, h, hdcWindow, 0, 0, SRCCOPY);
+
+    SelectObject(hdcMem, old);
+    DeleteDC(hdcMem);
+    ReleaseDC(hwnd, hdcWindow);
+
+    Gdiplus::Bitmap bmp(hbmp, nullptr);
+    DeleteObject(hbmp);
+
+    CLSID clsid{};
+    if (GetEncoderClsid(L"image/png", &clsid) < 0) return false;
+
+    return bmp.Save(filename.c_str(), &clsid, nullptr) == Gdiplus::Ok;
+}
+#endif
+/*#########*/
 double position;
 int Choice; //Zmienna z ktorej bede korzystal do wyborow uzytkownika typu tak/nie
 //enum class Test_X {off, on, first_time};    //Zmienna typu wyliczeniowego do weryfikacji stanu danego testu
@@ -84,6 +211,9 @@ int main ()
 
     Car Audi;
     bool paused = false;
+    #ifdef _WIN32
+    GdiplusInit gdip; //init GDI+ dla PNG
+    #endif
     /*    cout << "Czy chcesz uruchomic test po jakiej odleglosci auto rozpedzon do 50 km/h sie zatrzyma?\n1 - Tak / 2 - Nie" << endl;
         cout << "Dokonaj wyboru wpisujac cyfre a nastepnie naciskajac enter: ";
         cin >> Choice;
@@ -110,7 +240,7 @@ int main ()
             paused = false;
 
             Audi.~Car();
-            new (&Audi) Car();   //Reset do stanu startowego
+            new (&Audi) Car();   //Reset do stanu startowego - destruktor 
 
             Audi.set_Paused(false);
             Test.Reset();
@@ -271,6 +401,20 @@ int main ()
 
         cout << "\nTest time: " << Test.get_Test_Time()
             << "\nTest Distance: " << Test.get_Test_Distance() << " M";
+
+        //Dane do CSV
+        if (Key_ScreenShot()) {
+            CarState s = Audi.Get_State();
+
+            std::string base = "frame_" + TimestampNow();
+            SaveStateCSV(s, base + ".csv");
+
+        #ifdef _WIN32
+            std::wstring wname(base.begin(), base.end());
+            wname += L".png";
+            SaveConsolePNG(wname);
+        #endif
+        }
 
         this_thread::sleep_for(chrono::milliseconds(16));
     }
