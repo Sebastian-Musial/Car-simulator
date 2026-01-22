@@ -186,6 +186,8 @@ int main ()
         if (Key_Grade_Up()) Audi.get_Environment().Add_Grade_Percent(5.0);
         if (Key_Grade_Down()) Audi.get_Environment().Add_Grade_Percent(-5.0);
 
+        Audi.UpdateObserver();
+        Audi.get_Car_Dashboard().screen();
         //Wypisanie tekstu z informacjami w czasie rzeczywistym
         /*printf("\rspeed=%6.2f km/h   throttle=%.2f   brake=%.2f   fuel=%.2f L   engine=%s   ",
                     Audi.get_CarSpeed() * 3.6 , Audi.get_CatThrottle(), Audi.get_CarBrake(),    //Wystepuje tutaj mnozenie przez 3.6 w celu zamiany jednostki m/s na km/h
@@ -204,7 +206,7 @@ int main ()
 
         //czyszczenie ekranu bez miogotania i bez pozostawiania blednych liter na koncu wyrazu
         //Potencjalny BUG jeżeli tekstu będzie więcej niż wielkość startowego okna - trzeba uważać
-        cout << "\x1b[" << 27 << "A";
+        /*cout << "\x1b[" << 27 << "A";
         for(int i=0;i<27;i++) cout << "\x1b[2K\n";
         cout << "\x1b[" << 27 << "A";
 
@@ -231,9 +233,9 @@ int main ()
         else cout<<"\nABS is Unable";
         cout <<"\nActual road: " << setw(7) << Audi.get_Environment().get_surface().name() << " , Actual grade: "<< Audi.get_Environment().get_grade_Percent()
             << " , wind: " << Audi.get_Environment().get_wind();
-            //<< flush;
+            //<< flush;*/
 
-
+        //TEST ZOSTAJE !!!
         cout << "\n\n===TEST INFORMATION===" 
             << "\nJ - Test reset, K - Start/Stop test";
 

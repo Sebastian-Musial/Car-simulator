@@ -6,14 +6,56 @@
 #include <vector>
 #include <string>
 #include <cmath>
+#include <iomanip>
 #include "Engine_mechanics.hpp"
 #include "ShiftPolicy_Transmission.hpp"
 #include "Physics.hpp"
+
 
 using namespace std;
 
 class Car;
 
+//Wzorzec OBSERVER
+struct CarState
+{
+    double speedKmh = 0.0;
+    double throttle = 0.0;
+    double brake = 0.0;
+
+    double fuelL = 0.0;
+    double fuelCapL = 1.0;
+
+    bool engineOn = false;
+    string consumptionMode; // Normal/Eco/Sport/Off
+
+    int gear = 0;
+    double rpm = 0.0;
+    string shiftPolicy;
+
+    bool absEnable = false;
+    bool absActive = false;
+    bool tcsActive = false;
+
+    string road;
+    double gradePct = 0.0;
+    double wind = 0.0;
+
+    //Trip PC
+    double workTime = 0.0;
+    double consMoment = 0.0;
+    double consAvg = 0.0;
+    double distance = 0.0;
+};
+
+class ICarObserver
+{
+    public:
+        virtual ~ICarObserver() = default;
+        virtual void State_Changed(const CarState& New) = 0;
+};
+
+//Klasy samochodu
 class FuelTank {
     private:
         double FuelTank_Level;
@@ -283,17 +325,18 @@ class Engine {
         }
 };
 
-class Dashboard {
+class Dashboard : public ICarObserver {
     private:
-        FuelTank& FuelTank_Ref;
-        Engine& Engine_Ref;
+        CarState State{};
 
     public:
-        //Konstruktor
-        Dashboard(FuelTank& C_FuelTank_Ref, Engine& C_Engine_Ref)
-            : FuelTank_Ref(C_FuelTank_Ref), Engine_Ref(C_Engine_Ref) {}
+        Dashboard() = default;
 
         //Metody
+        void State_Changed(const CarState& New) override {
+            State = New;
+        }
+
         string FuelBar(double fuel, double cap, int width = 20) {
             if (cap <= 0) cap = 1;
             double ratio = std::clamp(fuel / cap, 0.0, 1.0);
@@ -301,6 +344,44 @@ class Dashboard {
             filled = std::clamp(filled, 0, width);
             return "[" + std::string(filled, '#') + std::string(width - filled, '.') + "]";
         }
+        void screen() {
+            //czyszczenie ekranu bez miogotania i bez pozostawiania blednych liter na koncu wyrazu
+            //Potencjalny BUG jeżeli tekstu będzie więcej niż wielkość startowego okna - trzeba uważać
+            cout << "\x1b[" << 27 << "A";
+            for(int i=0;i<27;i++) cout << "\x1b[2K\n";
+            cout << "\x1b[" << 27 << "A";
+
+            cout << fixed << setprecision(2);
+            cout << "===CAR AND ROAD CONTROL==="
+                << "\nUP = throttle, SPACE = brake, Q = quit, E = Engine ON/OFF, R - Refuel 8/9/0 - Consumption model Normal/Eco/Sport"
+                << "\nA - GearUp, Z - GearDown, M - ShiftPolicy[Manual/Auto]"
+                << "\n1 - Asphalt Road, 2 - Gravel Road, 3 - Ice Road, B - ABS ON/OFF"
+                << "\n[ - Grade Up, ] - Grade Down, Min grade = -30/Max grade = 30"
+                << "\n\n===CAR INFORMATION==="
+                << "\nSpeed:" << State.speedKmh /* * 3.6*/ << " km/h " << "  Throttle: " << State.throttle << "  Brake= " << State.brake
+                << " Engine: " << setw(4) <<(State.engineOn ? "ON" : "OFF")
+                
+                << "\nFuel: " << State.fuelL << " L " <<  FuelBar(State.fuelL, State.fuelCapL, 24) << " " << static_cast<int>(std::lround(std::clamp(State.fuelL / std::max(1.0, State.fuelCapL), 0.0, 1.0) * 100.0)) << "%"
+                << " Consumption Fuel Model: "<< setw(7) << State.consumptionMode
+
+                << "\n\nEngine Work time: " << State.workTime
+                << "\nMomentary Fuel Consumption: " << State.consMoment
+                << "\nAverage Fuel Consumption: " << State.consAvg
+                << "\nDistance: " << State.distance
+                << "\n\nCurrent gear: " << State.gear
+                << "\nRPM: " << State.rpm
+                << "\nShiftPolicy transmission: " << setw(7) << State.shiftPolicy
+
+                << "\n\nABS: " << setw(4) << (State.absActive ? "ON" : "OFF") << " TCS: " << setw(4) << (State.tcsActive ? "ON" : "OFF");
+
+            if (State.absEnable) cout<<"\nABS is Enable";
+            else cout<<"\nABS is Unable";
+
+            cout <<"\nActual road: " << setw(7) << State.road << " , Actual grade: "<< State.gradePct
+                << " , wind: " << State.wind;
+                //<< flush;
+        }
+
         /*void Car_Information() {
             cout<<"<--------Informacje o aucie-------->"<<endl;
             //Silnik
@@ -322,7 +403,6 @@ class Car {
         Engine Car_Engine;
         Transmission Car_Transmission;
         Dashboard Car_Dashboard;
-
 
         const double MAX_SPEED_MS = 50.0; //[M/S] -> 50 m/s * 3.6 = 180 km/h. Mnozenie przez 3.6 w celu uzyskania km/h
         const int MASS_KG = 1000;
@@ -351,6 +431,38 @@ class Car {
             return clamp(Current_Value, 0.0, 1.0);  //Przycina wartosci do przedzialu [0.0, 1.0] 
         } 
 
+        CarState Update_State() {
+            CarState s;
+            s.speedKmh = CarSpeed * 3.6;
+            s.throttle = CarThrottle;
+            s.brake    = CarBrake;
+
+            s.fuelL    = Car_FuelTank.get_FuelTank_Level();
+            s.fuelCapL = Car_FuelTank.get_FuelTank_Capacity();
+
+            s.engineOn = Car_Engine.Engine_is_On();
+            s.consumptionMode = Car_Engine.Check_Consumption();
+
+            s.gear = Car_Transmission.get_Current_Gear();
+            s.rpm  = Car_Transmission.get_RPM();
+            s.shiftPolicy = Car_Transmission.Check_ShiftPolicy();
+
+            s.absEnable = ABS_Enable;
+            s.absActive = ABS_Active;
+            s.tcsActive = TCS_Active;
+
+            s.road = env.get_surface().name();
+            s.gradePct = env.get_grade_Percent();
+            s.wind = env.get_wind();
+
+            s.workTime = Car_TripComputer.get_Work_Time();
+            s.consMoment = Car_TripComputer.get_Momentary_Fuel_Consumption_100KM();
+            s.consAvg = Car_TripComputer.get_Average_Fuel_Consumption();
+            s.distance = Car_TripComputer.get_Distance();
+
+            return s;
+        }
+
     public:
         /*//Konstruktor 
         Car(FuelTank& C_Car_FuelTank, Brake& C_Car_Brake, Engine& C_Car_Engine, Transmission Car_Transmission, Dashboard& C_Car_Dashboard) 
@@ -364,7 +476,13 @@ class Car {
               Car_Brake (env), 
               Car_Engine (Car_FuelTank, Car_TripComputer), 
               Car_Transmission (),
-              Car_Dashboard (Car_FuelTank, Car_Engine) {}
+              Car_Dashboard ()
+            {}
+
+        //OBSERVER
+        void UpdateObserver() {
+            Car_Dashboard.State_Changed(Update_State());
+        }
 
         //Gettery klas
         const Engine& get_Engine() const {
@@ -391,8 +509,11 @@ class Car {
         Transmission& get_Car_Transmission() {
             return Car_Transmission;
         }    
-        Dashboard get_Car_Dashboard() const {
-            return this->Car_Dashboard;
+        Dashboard& get_Car_Dashboard() {
+            return Car_Dashboard;
+        }
+        const Dashboard& get_Car_Dashboard() const { 
+            return Car_Dashboard; 
         }
         const TripComputer& get_Trip_Computer() const {
             return Car_TripComputer;
